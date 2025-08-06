@@ -1,5 +1,5 @@
 {
-  // Markdownlint configuration
+  // Markdownlint configuration - disabled for all .md files
   "config": {
     "MD013": {
       "line_length": 120,
@@ -19,18 +19,8 @@
     "MD009": false,
     "MD047": false
   },
-  "globs": [
-    "**/*.md"
-  ],
   "ignores": [
-    ".cursor/**/*.mdc",
-    ".venv/**",
-    "venv/**",
-    "node_modules/**",
-    ".git/**",
-    "**/.venv/**",
-    "**/venv/**",
-    "**/node_modules/**",
-    "docs/project_setup.md"
+    "**/*.md",
+    "**/*.mdc"
   ]
 }
