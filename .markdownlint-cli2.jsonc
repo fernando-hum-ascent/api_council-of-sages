@@ -1,0 +1,36 @@
+{
+  // Markdownlint configuration
+  "config": {
+    "MD013": {
+      "line_length": 120,
+      "tables": false,
+      "code_blocks": false
+    },
+    "MD022": false,
+    "MD032": false,
+    "MD031": false,
+    "MD040": false,
+    "MD034": false,
+    "MD036": false,
+    "MD010": false,
+    "MD029": false,
+    "MD012": false,
+    "MD041": false,
+    "MD009": false,
+    "MD047": false
+  },
+  "globs": [
+    "**/*.md"
+  ],
+  "ignores": [
+    ".cursor/**/*.mdc",
+    ".venv/**",
+    "venv/**",
+    "node_modules/**",
+    ".git/**",
+    "**/.venv/**",
+    "**/venv/**",
+    "**/node_modules/**",
+    "docs/project_setup.md"
+  ]
+}

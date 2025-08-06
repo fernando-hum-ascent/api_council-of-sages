@@ -1,0 +1,2 @@
+[codespell]
+skip = .git,*.lock,uv.lock,*.md,*.mdc

@@ -1,0 +1,170 @@
+---
+description:
+globs: **/orchestrator/tools/**/*.py
+alwaysApply: false
+---
+# 📜 Reglas para Herramientas (Tools) de Kopi AI Orchestrator
+
+Este documento define los estándares y buenas prácticas para el desarrollo y mantenimiento de herramientas (tools) en el orquestador de Kopi AI. Su propósito es asegurar consistencia, calidad y mantenibilidad del código.
+
+## 🛠 Estructura y Nomenclatura
+
+- **Archivos**:
+  - Nombrar archivos con sufijo `_tool.py` (ej: `navigation_tool.py`)
+  - Usar snake_case para nombres de archivos
+  - Organizar el código siguiendo la estructura estándar:
+    1. Imports
+    2. Definición de la clase de entrada (Input)
+    3. Funciones auxiliares privadas (si son necesarias)
+    4. Función principal del tool
+    5. Definición del tool
+
+- **Función principal**:
+  - Usar nombres descriptivos en snake_case (ej: `create_navigator_widget`)
+  - Siempre declarar como `async`
+  - Incluir anotaciones de tipo para parámetros y valor de retorno
+  - Tipos de retorno deben ser `str` o `Dict[str, Any]` (o `Union` de ambos)
+
+- **Definición del tool**:
+  - Nombres en snake_case (ej: `navigator_tool`)
+  - Siempre definir con `StructuredTool.from_function`
+  - Registrar en `__init__.py` y en `graph_definition.py` (CONTINUING_TOOLS o TERMINAL_TOOLS)
+
+---
+
+## 📋 Modelo de Entrada (Input)
+
+- **Clase de entrada**:
+  - Heredar de `BaseModel` de Pydantic
+  - Usar PascalCase para el nombre (ej: `ToolNavigatorInput`)
+  - Incluir `state: Annotated[OrchestratorState, InjectedState]` si el tool requiere acceso al estado
+
+- **Validación de parámetros**:
+  - Definir cada campo con `Field` incluyendo:
+    - `description`: Descripción clara del parámetro
+    - `examples`: Ejemplos de valores aceptables
+    - Reglas de validación apropiadas cuando sea necesario
+  - Usar tipos específicos como `NonEmptyStr` en lugar de validadores personalizados
+
+---
+
+## 🧰 Implementación
+
+- **Manejo de errores**:
+  - Usar obligatoriamente el decorador `@handle_tool_errors_with_logging()`
+  - Manejar casos de borde y validaciones adicionales
+  - Devolver mensajes de error significativos
+
+- **Acceso al estado**:
+  - Acceder al estado a través del parámetro inyectado `state`
+  - Usar `state.get("propiedad", valor_por_defecto)` para acceder de forma segura
+  - Documentar qué propiedades del estado utiliza el tool
+
+- **Monitoreo**:
+  - El uso de etiquetas de monitoreo con `LLMObs.annotate()` es opcional pero recomendado
+  - Agregar métricas relevantes para el monitoreo y depuración cuando sea necesario
+  - Considerar agregar métricas de rendimiento para operaciones complejas
+
+- **Documentación**:
+  - Proporcionar descripciones claras y concisas en la definición del tool
+  - Incluir docstrings para funciones principales y auxiliares
+  - Documentar el propósito, entradas, salidas y consideraciones especiales
+
+---
+
+## 📝 Descripción del Tool
+
+La descripción del tool debe incluir:
+1. Qué hace la herramienta
+2. Cuándo se debe utilizar
+3. Qué entradas espera
+4. Qué devuelve como salida
+5. Limitaciones o consideraciones especiales
+
+---
+
+## 🔄 Tipos de Tools
+
+- **Continuing Tools**: Herramientas que se usan durante la conversación y devuelven el control al orquestador
+  - Ejemplos: `auto_equity_tool`, `documentation_tool`, `kavak_policies_tool`
+  - No finalizan el flujo de conversación
+  - Se registran en `CONTINUING_TOOLS` en `graph_definition.py`
+
+- **Terminal Tools**: Herramientas que completan tareas específicas y finalizan el flujo de conversación
+  - Ejemplos: `navigator_tool`, `sdui_generate_complex_widget_tool`
+  - Transicionan al nodo END después de la ejecución
+  - Se registran en `TERMINAL_TOOLS` en `graph_definition.py`
+
+---
+
+## 📋 Lista de Verificación
+
+Antes de enviar un Pull Request, verificar:
+
+- [ ] El tool sigue la estructura estándar
+- [ ] El nombre del archivo termina con `_tool.py`
+- [ ] La clase de entrada hereda de `BaseModel`
+- [ ] Todos los campos tienen descripciones y ejemplos apropiados
+- [ ] La función principal usa el decorador `@handle_tool_errors_with_logging()`
+- [ ] La función es `async` y tiene anotaciones de tipo
+- [ ] El tool está registrado en `__init__.py`
+- [ ] El tool está registrado en `graph_definition.py` en la lista correcta
+- [ ] La descripción del tool es completa y clara
+
+---
+
+## 🚀 Ejemplos de Buenas Prácticas
+
+```python
+# Ejemplo de modelo de entrada bien definido
+class AutoEquityInput(BaseModel):
+    query: NonEmptyStr = Field(
+        description="La pregunta sobre Auto Equity",
+        examples=["¿Cuál es el proceso para obtener un préstamo con mi auto?"],
+    )
+    state: Annotated[OrchestratorState, InjectedState]
+
+# Ejemplo de función de tool bien implementada
+@handle_tool_errors_with_logging()
+async def request_auto_equity(
+    query: str,
+    state: OrchestratorState,
+) -> str:
+    """Procesa una consulta sobre Auto Equity y retorna la respuesta.
+
+    Args:
+        query: La pregunta del usuario sobre Auto Equity
+        state: El estado del orquestador con el historial de conversación
+
+    Returns:
+        str: La respuesta del servicio de Auto Equity
+    """
+    # Implementación...
+    return response["content"]
+
+# Ejemplo de definición de tool bien documentada
+auto_equity_tool = StructuredTool.from_function(
+    name="auto_equity_tool",
+    description="""
+    Responde consultas sobre cómo aprovechar el valor del auto para financiamiento.
+    Usa esta herramienta cuando el usuario pregunte sobre préstamos con garantía
+    de su vehículo, opciones de financiamiento usando su auto, o temas relacionados
+    con Auto Equity.
+    """,
+    args_schema=AutoEquityInput,
+    coroutine=request_auto_equity,
+)
+```
+
+---
+
+## 🔍 Solución de Problemas Comunes
+
+| Problema | Solución |
+|----------|----------|
+| Tool no aparece en el sistema | Verificar registro en `__init__` y `graph_definition` |
+| Errores de validación de parámetros | Verificar que los datos coincidan con los requisitos del Field |
+| Problemas de acceso al estado | Asegurar que el estado esté correctamente inyectado y accedido |
+| Tool agota el tiempo de espera | Agregar manejo de timeouts y optimizar rendimiento |
+| Datos de monitoreo faltantes | Verificar que LLMObs.annotate se llame correctamente |
+| Tool no enruta correctamente | Verificar que el tool esté en la lista correcta |

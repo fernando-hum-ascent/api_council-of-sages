@@ -1,0 +1,194 @@
+---
+description:
+globs: **/tests/**/*.py
+alwaysApply: false
+---
+# 📜 Reglas para Tests
+
+Este documento define los estándares y buenas prácticas para el desarrollo de pruebas en este repositorio. Su propósito es asegurar consistencia, calidad y mantenibilidad del código de pruebas a través de guías claras para todos los desarrolladores del proyecto.
+
+## 🛠 Estructura de Proyecto
+
+- **tests/**: Debe contener pruebas unitarias y de integración que reflejen la estructura del código de la aplicación.
+  - **conftest.py**: Define fixtures comunes para todas las pruebas.
+  - **resources/**: Pruebas para los recursos de API.
+  - **models/**: Pruebas para los modelos de datos.
+  - **lib/**: Pruebas para servicios y lógica compartida.
+  - **orchestrator/**: Pruebas para los componentes del orquestador.
+    - **tools/**: Pruebas para herramientas específicas del orquestador.
+  - **cassettes/**: Archivos de grabación para pruebas que usan VCR.
+
+---
+
+## 🧪 Convenciones de Nombrado
+
+- Los nombres de archivos de prueba deben seguir el patrón `test_<nombre_del_módulo>.py`.
+- Las funciones de prueba deben seguir el patrón `test_should_<resultado_esperado>_when_<condiciones>`.
+- Los fixtures deben tener nombres descriptivos en snake_case que reflejen lo que proveen.
+- Los directorios de pruebas deben reflejar exactamente la estructura del código de la aplicación.
+
+---
+
+## 📋 Organización de Pruebas
+
+- Usar **pytest** como framework principal de pruebas.
+- Utilizar **pytest.mark.parametrize** para cubrir múltiples escenarios con una sola función de prueba.
+  - Los parámetros deben agrupar escenarios lógicamente relacionados. Por ejemplo:
+    - Agrupar todos los casos donde el input es inválido en un test parametrizado.
+    - Agrupar todos los casos donde el input es válido en otro test parametrizado.
+  - Los tests parametrizados no deben contener condicionales internos, ya que esto sugiere que se están probando escenarios conceptualmente distintos que deberían estar en tests separados.
+- Incluir pruebas para casos positivos (happy path) y negativos (manejo de errores).
+- Aislar adecuadamente las pruebas para evitar interdependencias entre casos de prueba.
+- Cuando se modifique el estado de un registro de base de datos a través de un endpoint o función, se debe verificar el estado en el que quedó el resgistro después del test:
+
+  ```python
+  async def test_update_user(client, user):
+      req = {
+          "status": "inactive",
+      }
+      resp = await client.patch(f'/users/{user.id}', json=req)
+      assert resp.status_code == 200
+
+      await user.async_reload()
+      assert user.status is UserStatus.inactive
+  ```
+
+- Seguir el patrón AAA (Arrange, Act, Assert) para una estructura clara:
+
+  ```python
+  # Arrange - Preparar datos y precondiciones
+  input_data = {"key": "value"}
+
+  # Act - Ejecutar la función/método que se está probando
+  result = function_under_test(input_data)
+
+  # Assert - Verificar que el resultado es el esperado
+  assert result == expected_output
+  ```
+
+---
+
+## 🔄 Fixtures y Mocks
+
+- Definir fixtures en **conftest.py** para configuraciones comunes:
+  - A nivel de directorio para componentes específicos
+  - A nivel global para configuraciones comunes como conexiones a bases de datos
+  - Los archivos **conftest.py** deben contener exclusivamente fixtures y hooks de pytest, nunca funciones o clases utilitarias
+  - Las funciones o clases utilitarias para pruebas deben colocarse en archivos separados, generalmente **utils.py**
+- Para pruebas con mocks, utilizar el siguiente orden de preferencia:
+  1. Para pruebas que realizan peticiones HTTP a algún recurso externo, usar cassettes (VCR.py)
+  2. Para pruebas que realizan peticiones HTTP de escenarios complicados de reproducir (errores 500, timeouts, network errors, etc.), usar respx, pytest_httpx, responses
+  3. Para pruebas donde es necesario hacer patch de módulos específicos de alguna biblioteca o partes del codebase, o que no pueden reproducirse fácilmente con las opciones anteriores, usar unittest.mock.patch, monkeypatch o similar
+- **Datos de prueba (Dummy Data)**: Cuando se necesite crear datos de prueba o dummy data para múltiples tests:
+  - Crear fixtures reutilizables en lugar de generar los datos directamente en cada test
+  - Definir estos fixtures en el archivo **conftest.py** apropiado (local o global según el alcance)
+  - Usar nombres descriptivos que indiquen claramente qué tipo de datos proveen
+  - Ejemplo:
+    ```python
+    @pytest.fixture
+    def sample_user_data():
+        """Proporciona datos de usuario de ejemplo para pruebas."""
+        return {
+            "id": 1,
+            "name": "Test User",
+            "email": "test@example.com",
+            "status": "active"
+        }
+
+    @pytest.fixture
+    def sample_car_data():
+        """Proporciona datos de vehículo de ejemplo para pruebas."""
+        return {
+            "id": "ABC123",
+            "make": "Toyota",
+            "model": "Corolla",
+            "year": 2023
+        }
+    ```
+
+---
+
+## 💾 Gestión de Cassettes VCR
+
+- Para pruebas que utilizan VCR:
+  - No generar ni modificar manualmente los archivos de cassettes: se crean automáticamente al ejecutar los tests.
+  - Configurar VCR para filtrar datos sensibles de headers y payloads
+  - Utilizar el fixture **vcr** proporcionado en conftest.py
+  - Aplicar el decorador **@pytest.mark.vcr** a las pruebas que utilizan VCR
+
+---
+
+## 🔍 Assertions
+
+- Utilizar assertions específicas para diferentes tipos de validación:
+  - `assert result == expected` para igualdad exacta
+  - `assert "text" in result` para coincidencias parciales
+  - `assert len(result) == expected_count` para validar el número exacto de elementos en una colección
+  - `assert result == expected_items` para validar el contenido exacto de colecciones cuando sea posible
+  - `assert set(result) == set(expected_items)` cuando el orden no importa pero sí el contenido exacto
+- Incluir mensajes de error útiles con las aserciones:
+
+  ```python
+  assert result == expected, f"Expected {expected}, got {result}"
+  ```
+
+- Validar coincidencias exactas para salidas deterministas y coincidencias de patrones para salidas variables
+
+---
+
+## 🧩 Pruebas de Herramientas (Tools)
+
+- Las pruebas de tools del orquestador deben:
+  - Verificar la entrada y salida de cada herramienta
+  - Probar el manejo de errores y casos límite
+  - Mockear dependencias externas cuando sea apropiado
+  - Verificar la interacción correcta con el estado del orquestador
+  - Comprobar que las respuestas cumplen con los formatos esperados
+
+---
+
+## 📝 Documentación
+
+- Documentar configuraciones complejas de pruebas y casos no obvios.
+- Agregar docstrings descriptivos para explicar el propósito de cada prueba:
+
+  ```python
+  def test_should_validate_user_input_when_data_is_complete():
+      """
+      Verifica que la validación de entrada del usuario funcione correctamente
+      cuando se proporcionan todos los campos requeridos con valores válidos.
+      """
+  ```
+
+- Mantener la documentación actualizada cuando cambia la funcionalidad.
+
+---
+
+## ⚡ Rendimiento
+
+- Mantener las pruebas eficientes en tiempo de ejecución:
+  - Usar VCR Cassettes para en vez de mockear dependencias externas cuando sea posible
+  - Agrupar pruebas relacionadas con fixtures comunes
+  - Evitar pruebas redundantes o duplicadas
+  - Preferir pruebas unitarias sobre pruebas de integración para componentes no críticos
+
+---
+
+## 🛡️ Buenas Prácticas
+
+- No escribir pruebas que solo validen funcionalidades nativas de los frameworks:
+  - Evitar probar validadores nativos de Pydantic
+  - Evitar probar funcionalidades estándar de FastAPI
+- Enfocarse en probar la lógica de negocio propia
+- Mantener alta cobertura en componentes críticos
+- Ejecutar pruebas mediante `make test` o `make testcov`
+- Aplicar Cassettes para aislar el código de servicios externos
+- Verificar que las pruebas fallen cuando deben fallar (cambiar temporalmente el código para verificar)
+
+---
+
+## 📌 Aplicación obligatoria
+
+- Mantener el tiempo de ejecución de pruebas bajo
+- Agregar nuevas pruebas al implementar nuevas funcionalidades
+- Actualizar las pruebas existentes al modificar funcionalidades

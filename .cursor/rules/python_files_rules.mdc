@@ -1,0 +1,67 @@
+---
+description:
+globs: **/*.py
+alwaysApply: false
+---
+# 📜 Reglas de Python
+Este documento define los estándares de desarrollo y buenas prácticas de python. Su propósito es asegurar consistencia, calidad y mantenibilidad de código de python, a través de guías claras para el proceso de desarrollo.
+
+## 🎯 Principios de Código
+
+- Cumplir con el estándar **PEP8** con longitud máxima de línea de 79 caracteres.
+- Usar **4 espacios** para indentación (no tabs).
+- **Imports relativos** (`from ..models.user import User`), evitar imports absolutos.
+- Los imports deben estar agrupados y ordenados (estándar de biblioteca, terceros, locales).
+- Usar **comillas dobles** para strings (según configuración en ruff).
+- **Usar type hints** en todas las funciones y métodos para mejorar la mantenibilidad y detectar errores temprano (compatible con mypy).
+- Evitar usar el tipo 'Any'; ser lo más específico posible con los tipos.
+- Seguir patrones adecuados de manejo de excepciones; evitar usar `except` sin tipo o `except Exception`.
+- Usar **loguru** para logging.
+- Mantener docstrings claros para funciones complejas, clases y módulos; el código simple autoexplicativo no requiere docstrings.
+- Nomenclatura:
+  - Funciones y variables: **snake_case**
+  - Clases: **PascalCase**
+  - Constantes: **UPPERCASE_WITH_UNDERSCORES**
+
+---
+
+## 📦 Manejo de Entradas y Salidas
+
+- Siempre usar **modelos de Pydantic v2** para validar entradas y salidas:
+  - Utilizar tipos nativos y validadores integrados de Pydantic o paquetes como `pydantic_extra_types`.
+  - Evitar crear validadores personalizados para casos que ya están cubiertos por tipos existentes.
+  - Para datos derivados, preferir **propiedades calculadas** o **validadores de modelo**.
+  - Incluir validaciones de campo completas.
+  - Incluir ejemplos solo donde sean útiles.
+- Evitar el uso de **diccionarios brutos** (`dict`) para representar o devolver datos estructurados.
+- **Integración con frameworks**:
+  - En **FastAPI**, preferir el uso de anotaciones de tipo de retorno:
+    ```python
+    @app.post('/cars')
+    async def create_car(req: CarRequest) -> List[Car]:
+       ...
+    ```
+  - Evitar validaciones manuales cuando el framework puede manejarlas automáticamente como: (coordenadas, emails, URLs, fechas, validaciones de rangos de numeros, sanitización de cadenas, etc).
+
+### Ejemplo: Uso correcto de tipos especializados
+```python
+# INCORRECTO: Validador personalizado innecesario
+from pydantic import BaseModel, field_validator
+
+class LocationValidator(BaseModel):
+    location: str
+
+    @field_validator('location')
+    def validate_location(cls, value: str) -> str:
+        values = value.split(',')
+        if len(values) != 3:
+            raise ValueError('Must provide exactly 3 values for location')
+        return value
+
+# CORRECTO: Uso de tipo especializado existente
+from pydantic import BaseModel
+from pydantic_extra_types.coordinate import Coordinate
+
+class LocationValidator(BaseModel):
+    location: Coordinate  # Maneja automáticamente la validación
+```

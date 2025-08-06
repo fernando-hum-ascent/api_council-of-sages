@@ -1,0 +1,86 @@
+[project]
+name = "council-of-sages"
+version = "0.1.0"
+authors = [
+    { name = "Luis Fernando Garcia Cabrera", email = "fernando@hum-ascent.com" },
+]
+description = "FastAPI + LangGraph application"
+requires-python = ">=3.13"
+dependencies = [
+    "fastapi>=0.109.0",
+    "uvicorn>=0.27.0",
+    "httpx>=0.25.0",
+    "pydantic>=2.4.2",
+    "pydantic-settings>=2.1.0",
+    "pydantic-core>=2.24.0",
+    "python-dotenv>=1.0.0",
+    "loguru>=0.7.2",
+    "langgraph>=0.0.20",
+    "langchain>=0.3.12",
+    "langchain-core>=0.3.25",
+    "langchain-community>=0.3.12",
+    "langchain-openai>=0.2.12",
+    "langchain-anthropic>=0.3.1",
+    "emoji>=2.14.1",
+    "blinker>=1.9.0",
+    "mongoengine-plus>=1.0.0",  # Optional: if using MongoDB
+]
+
+[dependency-groups]
+dev = [
+    "ipython",
+    "ipdb",
+    "ipykernel",
+    "pre-commit>=4.0.1",
+    "ruff>=0.12.7",
+    "mypy>=1.17.1",
+]
+linting = [
+    "ruff>=0.11.9",
+    "mypy>=1.15.0",
+    "types-requests>=2.31.0.20240125",
+    "types-PyYAML>=6.0.12.12",
+]
+testing = [
+    "pytest>=7.4.4",
+    "coverage>=7.4.0",
+    "pytest-cov>=4.1.0",
+    "pytest-asyncio>=0.25.0",
+    "pytest-loguru>=0.4.0",
+    "vcrpy>=2.31.0",
+    "pytest-vcr>=1.0.2",
+    "mongomock>=4.3.0",  # Optional: if using MongoDB
+    "defusedxml>=0.7.1",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.pytest.ini_options]
+addopts = "--ignore=__pypackages__ --ignore-glob=*.yaml -v --durations=10 --cov=council_of_sages --cov-report=term-missing"
+asyncio_mode = "auto"
+filterwarnings = [
+    "ignore:datetime.datetime.utcfromtimestamp\\(\\) is deprecated:DeprecationWarning",
+    "ignore:datetime.datetime.utcnow\\(\\) is deprecated:DeprecationWarning",
+]
+
+[tool.mypy]
+ignore_missing_imports = true
+plugins = "pydantic.mypy"
+
+[tool.hatch.build.targets.wheel]
+packages = ["council_of_sages"]
+
+[tool.coverage.report]
+exclude_also = [
+    "def __repr__",
+    "if self.debug:",
+    "if settings.DEBUG",
+    "raise AssertionError",
+    "raise NotImplementedError",
+    "if __name__ == .__main__.:",
+    "if TYPE_CHECKING:",
+    "class .*\\bProtocol\\):",
+    "@(abc\\.)?abstractmethod",
+]

@@ -1,0 +1,83 @@
+---
+description:
+globs: *
+alwaysApply: false
+---
+# 📜 Reglas Generales
+Este documento define los estándares de desarrollo y buenas prácticas para el desarrollo en este repositorio. Su propósito es asegurar consistencia, calidad y mantenibilidad del código  a través de guías claras para todos los desarrolladores del proyecto.
+
+## 🛠 Estructura de Proyecto
+
+- **lib/**: Servicios, integraciones y lógica compartida.
+- **models/**: Modelos de MongoEngine. Toda operación de negocio debe implementarse en métodos o propiedades del modelo.
+- **resources/**: Endpoints expuestos de API. Mantenerlos simples y delegar la lógica a `lib` o `models`.
+  - Pueden contener lógica de validación extra que no puede hacerse a nivel de Pydantic validators, como verificar que el auto de un usuario exista y retornar códigos de error acordes al contexto de validación.
+  - Los nombres de archivos deben ser en plural y la ruta de los endpoints debe coincidir con el nombre del archivo. Por ejemplo, `cars.py` debe contener rutas como:
+    - `POST /cars`
+    - `GET /cars`
+    - `GET /cars/:car_id`
+    - `PATCH /cars/:car_id`
+- **types.py**: Debe contener enums, modelos Pydantic para validación (requests y responses).
+  - Las propiedades de enums deben estar en lowercase y snake_case.
+  - Los nombres de las propiedades deben coincidir con sus valores.
+- **exc.py**: Debe contener excepciones personalizadas que sean utilizadas en el codebase.
+- **tasks/**: Background tasks o procesos batch asíncronos.
+- **tests/**: Contiene todas las pruebas unitarias del proyecto.
+- **evals/**: Contiene evaluaciones y pruebas de rendimiento para servicios de LLM.
+  - **evals_data/**: Archivos JSON con datfos de entrada y salida esperada para evaluaciones.
+  - Fuera de la carpeta `evals_data` se encuentran los tests que evalúan los datos de las evaluaciones.
+- **config.py**: Definición y validación de variables de entorno.
+- **scripts/**: Scripts auxiliares para el proyecto.
+- **Makefile**: Definición de tareas y comandos para el proyecto.
+
+---
+
+## 🎯 Principios de Código
+
+- Aplicar **programación funcional** cuando sea posible (funciones puras, minimizar efectos secundarios).
+- Cada función, clase o archivo debe seguir el principio de **responsabilidad única**.
+- **Nombres descriptivos** en variables, funciones y clases (ejemplo: `user_info` en lugar de `ui`).
+- **Reutilizar código existente** antes de crear nuevas funciones.
+- **No duplicar lógica** que ya existe en `lib`, `models` o `tasks`.
+- **Preferir bibliotecas existentes** para funcionalidades comunes en lugar de implementar soluciones propias (ejemplo: usar `emoji` para manipular emojis en texto en lugar de escribir expresiones regulares personalizadas).
+
+---
+
+## 🖋️ Estilo de Código
+
+- **El estilo de código debe seguir estrictamente la configuración definida en `pyproject.toml` o `ruff.toml`**.
+- **Formatos automáticos**:
+  - Usar `Ruff` y `Black` mediante `make format`.
+  - Se aplicarán reglas de estilo, orden de imports, y trailing commas conforme a la configuración.
+- **Correcciones manuales de estilo no son necesarias**: ejecutar `make format` o `pre-commit` para corregir.
+
+---
+
+## 🛡️ Variables de Entorno
+
+- Todas las variables deben estar definidas en `config.py`.
+- Si se agrega una nueva variable obligatoria:
+  - Agregarla también a `.env.example`.
+  - Asegurar validación adecuada en el código.
+- Las propiedades de la clase Config deben estar en snake_case y lowercase, aunque en el archivo `.env.template` estén en mayúsculas.
+
+---
+
+## 🧪 Guía de Pruebas
+
+- Todas las funciones de negocio deben tener **pruebas unitarias**.
+- Usar `pytest`, `pytest-asyncio`, `pytest-cov`.
+- Mantener **alta cobertura** en componentes críticos.
+- Ejecutar pruebas mediante `make test` o `make testcov`.
+- **No escribir tests** que solo validen el funcionamiento de validadores nativos de Pydantic.
+- Los tests deben enfocarse en la lógica propia del negocio, no en revalidar funcionalidades del framework.
+
+---
+
+## 📌 Aplicación obligatoria
+
+- Reemplazar validadores personalizados cuando exista una alternativa integrada o externa válida.
+- Eliminar tests innecesarios que solo verifiquen validaciones estándar de Pydantic.
+- Bloquear Pull Requests que introduzcan validadores redundantes o innecesarios cuando exista un tipo adecuado.
+
+---
