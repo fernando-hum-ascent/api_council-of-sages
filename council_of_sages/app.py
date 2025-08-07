@@ -2,12 +2,16 @@ from fastapi import FastAPI
 from pydantic import BaseModel
 
 from .config import config
+from .resources.orchestrator import router as orchestrator_router
 
 app = FastAPI(
     title="Council of Sages",
     description="FastAPI + LangGraph application",
     version="0.1.0",
 )
+
+# Include routers
+app.include_router(orchestrator_router)
 
 
 class HealthResponse(BaseModel):

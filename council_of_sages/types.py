@@ -49,3 +49,44 @@ class PaginationParams(BaseModel):
     def offset(self) -> int:
         """Calculate offset from page and limit"""
         return (self.page - 1) * self.limit
+
+
+class ChatUserEnum(str, Enum):
+    """Enum for chat user roles"""
+
+    human = "human"
+    ai = "ai"
+
+
+class SageEnum(str, Enum):
+    """Enum for available philosophical sages"""
+
+    marcus_aurelius = "marcus_aurelius"
+    nassim_taleb = "nassim_taleb"
+    naval_ravikant = "naval_ravikant"
+
+
+class OrchestratorRequest(BaseModel):
+    """Request model for orchestrator endpoint with conversation support"""
+
+    query: str = Field(description="User query to process")
+    user_id: str = Field(description="Unique identifier for the user")
+    conversation_id: str | None = Field(
+        default=None,
+        description=(
+            "Optional conversation ID to continue existing conversation"
+        ),
+    )
+
+
+class OrchestratorResponse(BaseModel):
+    """Response model for orchestrator endpoint"""
+
+    response: str = Field(description="The consolidated response")
+    conversation_id: str = Field(description="ID of the conversation")
+    agent_queries: dict[str, str] = Field(
+        description="Queries sent to each agent"
+    )
+    agent_responses: dict[str, str] = Field(
+        description="Individual agent responses"
+    )
