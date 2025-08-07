@@ -1,13 +1,31 @@
+from collections.abc import AsyncGenerator
+from contextlib import asynccontextmanager
+
 from fastapi import FastAPI
+from loguru import logger
 from pydantic import BaseModel
 
 from .config import config
+from .lib.database import init_database
 from .resources.orchestrator import router as orchestrator_router
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI) -> AsyncGenerator:
+    """Application lifespan manager."""
+    # Startup
+    logger.info("Starting Council of Sages API...")
+    init_database()
+    yield
+    # Shutdown
+    logger.info("Shutting down Council of Sages API...")
+
 
 app = FastAPI(
     title="Council of Sages",
     description="FastAPI + LangGraph application",
     version="0.1.0",
+    lifespan=lifespan,
 )
 
 # Include routers

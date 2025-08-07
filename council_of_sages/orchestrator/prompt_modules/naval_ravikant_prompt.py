@@ -3,7 +3,7 @@ from ...lib.prompting import PromptModel
 
 NAVAL_RAVIKANT_PROMPT = PromptModel(
     prompt_name="naval_ravikant_sage",
-    model="claude-3-5-sonnet-20241022",
+    model="claude-3-5-haiku-20241022",
     json_format=False,
     temperature=0.6,  # Higher temperature for creative, expansive thinking
     template="""

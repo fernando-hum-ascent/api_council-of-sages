@@ -27,7 +27,6 @@ class Config(BaseSettings):
     anthropic_api_key: str | None = Field(
         default=None, description="Anthropic API key"
     )
-
     mongodb_url: str | None = Field(
         default=None, description="MongoDB connection URL"
     )

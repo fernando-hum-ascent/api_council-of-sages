@@ -53,7 +53,7 @@ class ResponseModerator:
 
         # Format chat history for context
         if chat_history:
-            chat_context = "\\n".join(
+            chat_context = "\n".join(
                 [
                     f"{role.upper()}: {content}"
                     for role, content in chat_history[-5:]
@@ -120,7 +120,7 @@ class ResponseModerator:
 
         # Format chat history for context
         if chat_history:
-            conversation_context = "\\n".join(
+            conversation_context = "\n".join(
                 [
                     f"{role.upper()}: {content}"
                     for role, content in chat_history[-3:]
@@ -130,7 +130,7 @@ class ResponseModerator:
             conversation_context = "No previous conversation context."
 
         # Prepare the consolidation prompt
-        query_context = "\\n".join(
+        query_context = "\n".join(
             [
                 f"• {sage_name.replace('_', ' ').title()}: {query}"
                 for sage_name, query in agent_queries.items()
@@ -138,9 +138,9 @@ class ResponseModerator:
             ]
         )
 
-        sage_outputs = "\\n\\n".join(
+        sage_outputs = "\n\n".join(
             [
-                f"=== {sage_name.upper().replace('_', ' ')} ===\\n{response}"
+                f"=== {sage_name.upper().replace('_', ' ')} ===\n{response}"
                 for sage_name, response in agent_responses.items()
             ]
         )

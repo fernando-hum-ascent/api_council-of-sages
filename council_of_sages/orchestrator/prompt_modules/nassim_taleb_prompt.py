@@ -3,7 +3,7 @@ from ...lib.prompting import PromptModel
 
 NASSIM_TALEB_PROMPT = PromptModel(
     prompt_name="nassim_taleb_sage",
-    model="claude-3-5-sonnet-20241022",
+    model="claude-3-5-haiku-20241022",
     json_format=False,
     temperature=0.5,  # Medium temperature for distinctive contrarian style
     template="""

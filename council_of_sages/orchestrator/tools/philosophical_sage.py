@@ -1,5 +1,8 @@
+from typing import Annotated
+
 from langchain_anthropic import ChatAnthropic
 from langchain_core.tools import StructuredTool
+from langgraph.prebuilt import InjectedState
 from pydantic import BaseModel, Field
 
 from ...types import SageEnum
@@ -8,6 +11,7 @@ from ..prompt_modules import (
     NASSIM_TALEB_PROMPT,
     NAVAL_RAVIKANT_PROMPT,
 )
+from ..states import OrchestratorState
 
 
 class PhilosophicalSageInput(BaseModel):
@@ -15,9 +19,7 @@ class PhilosophicalSageInput(BaseModel):
 
     sage: SageEnum = Field(description="Which philosophical sage to consult")
     query: str = Field(description="Query for the sage")
-    chat_history: list[tuple[str, str]] = Field(
-        default=[], description="Previous conversation context"
-    )
+    state: Annotated[OrchestratorState | None, InjectedState]
 
 
 # Sage configurations with their specific settings
@@ -41,9 +43,7 @@ SAGE_CONFIGS = {
 
 
 async def philosophical_sage_function(
-    sage: SageEnum,
-    query: str,
-    chat_history: list[tuple[str, str]] | None = None,
+    sage: SageEnum, query: str, state: OrchestratorState
 ) -> str:
     """Unified sage function that provides wisdom based on the specified
     sage parameter"""
@@ -62,6 +62,9 @@ async def philosophical_sage_function(
         model=prompt_model.model,
         temperature=prompt_model.temperature,
     )
+
+    # Extract chat history from injected state
+    chat_history = state.get("chat_history", [])
 
     # Format chat history for context
     if chat_history:

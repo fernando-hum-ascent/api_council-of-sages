@@ -317,9 +317,8 @@ async def philosophical_sage_function(
 
     # Create LLM instance with sage-specific settings
     llm = ChatAnthropic(
-        model="claude-3-5-sonnet-20241022",
+        model="claude-3-5-haiku-20241022",
         temperature=config["temperature"],
-        name=config["name"],
     )
 
     # Format chat history for context
@@ -381,7 +380,7 @@ class ResponseModerator:
     """Moderator that distributes queries and consolidates responses with conversation context"""
 
     def __init__(self):
-        self.llm = ChatAnthropic(model="claude-3-5-sonnet-20241022", temperature=0.2)
+        self.llm = ChatAnthropic(model="claude-3-5-haiku-20241022", temperature=0.2)
         self.distribution_parser = PydanticOutputParser(pydantic_object=QueryDistributionOutput)
 
         # Template for query distribution with conversation context

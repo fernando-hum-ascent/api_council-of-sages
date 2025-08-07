@@ -20,7 +20,7 @@ from ..types import ChatUserEnum
 class Message(EmbeddedDocument):
     """Individual message in a conversation"""
 
-    id = StringField(primary_key=True, default=uuid_field("MSG_"))
+    id = StringField(default=uuid_field("MSG_"))
     role = EnumField(ChatUserEnum, required=True)  # 'human' or 'ai'
     content = DynamicField(
         required=True
@@ -51,9 +51,8 @@ class Conversation(BaseModel, AsyncDocument):
         """Add a new message to the conversation"""
         self.messages.append(
             Message(
-                role=role.value,
+                role=role,
                 content=content,
-                timestamp=datetime.now(UTC),
             )
         )
         await self.async_save()
@@ -74,19 +73,11 @@ class Conversation(BaseModel, AsyncDocument):
 async def get_active_conversation_or_create_one(
     user_id: str, conversation_id: str | None = None
 ) -> Conversation:
-    """Get existing conversation or create a new one"""
     try:
-        if conversation_id:
-            return await Conversation.objects.async_get(
-                id=conversation_id, user_id=user_id
-            )
-        else:
-            # Create new conversation if no ID provided
-            conversation = Conversation(user_id=user_id)
-            await conversation.async_save()
-            return conversation
+        return await Conversation.objects.async_get(
+            id=conversation_id, user_id=user_id
+        )
     except DoesNotExist:
-        # Create new conversation if specified ID doesn't exist
         conversation = Conversation(user_id=user_id)
         await conversation.async_save()
         return conversation

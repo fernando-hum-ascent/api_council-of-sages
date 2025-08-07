@@ -3,7 +3,7 @@ from ...lib.prompting import PromptModel
 
 MARCUS_AURELIUS_PROMPT = PromptModel(
     prompt_name="marcus_aurelius_sage",
-    model="claude-3-5-sonnet-20241022",
+    model="claude-3-5-haiku-20241022",
     json_format=False,
     temperature=0.3,  # Lower temperature for thoughtful, philosophical responses
     template="""

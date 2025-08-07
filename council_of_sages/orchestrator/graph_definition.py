@@ -50,35 +50,34 @@ async def parallel_sages_node(
     """Execute all three sages in parallel with their specific queries and
     conversation context"""
     agent_queries = state["agent_queries"]
-    chat_history = state.get("chat_history", [])
 
     # Extract specific queries for each sage
     marcus_query = agent_queries.get("marcus_aurelius", state["user_query"])
     taleb_query = agent_queries.get("nassim_taleb", state["user_query"])
     naval_query = agent_queries.get("naval_ravikant", state["user_query"])
 
-    # Execute all sages in parallel with their specific queries and
-    # conversation context
+    # Execute all sages in parallel with their specific queries
+    # Pass state explicitly since we're not using ToolNode
     tasks = [
         philosophical_sage.ainvoke(
             {
                 "sage": "marcus_aurelius",
                 "query": marcus_query,
-                "chat_history": chat_history,
+                "state": state,
             }
         ),
         philosophical_sage.ainvoke(
             {
                 "sage": "nassim_taleb",
                 "query": taleb_query,
-                "chat_history": chat_history,
+                "state": state,
             }
         ),
         philosophical_sage.ainvoke(
             {
                 "sage": "naval_ravikant",
                 "query": naval_query,
-                "chat_history": chat_history,
+                "state": state,
             }
         ),
     ]
