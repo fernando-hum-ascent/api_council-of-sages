@@ -2,6 +2,7 @@ import asyncio
 from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
 
+from dotenv import load_dotenv
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from loguru import logger
@@ -10,6 +11,8 @@ from pydantic import BaseModel
 from .config import config
 from .lib.database import init_database
 from .resources.orchestrator import router as orchestrator_router
+
+load_dotenv()
 
 
 @asynccontextmanager
