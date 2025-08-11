@@ -2,6 +2,7 @@ import asyncio
 
 from langchain_core.messages import HumanMessage
 from langgraph.graph import END, StateGraph
+from loguru import logger
 
 from .moderator import ResponseModerator
 from .states import OrchestratorState
@@ -47,47 +48,51 @@ async def query_distribution_node(
 async def parallel_sages_node(
     state: OrchestratorState,
 ) -> dict[str, dict[str, str]]:
-    """Execute all three sages in parallel with their specific queries and
+    """Execute selected sages in parallel with their specific queries and
     conversation context"""
     agent_queries = state["agent_queries"]
 
-    # Extract specific queries for each sage
-    marcus_query = agent_queries.get("marcus_aurelius", state["user_query"])
-    taleb_query = agent_queries.get("nassim_taleb", state["user_query"])
-    naval_query = agent_queries.get("naval_ravikant", state["user_query"])
+    # Define available sages
+    available_sages = ["marcus_aurelius", "nassim_taleb", "naval_ravikant"]
 
-    # Execute all sages in parallel with their specific queries
-    # Pass state explicitly since we're not using ToolNode
-    tasks = [
-        philosophical_sage.ainvoke(
-            {
-                "sage": "marcus_aurelius",
-                "query": marcus_query,
-                "state": state,
-            }
-        ),
-        philosophical_sage.ainvoke(
-            {
-                "sage": "nassim_taleb",
-                "query": taleb_query,
-                "state": state,
-            }
-        ),
-        philosophical_sage.ainvoke(
-            {
-                "sage": "naval_ravikant",
-                "query": naval_query,
-                "state": state,
-            }
-        ),
-    ]
+    # Prepare tasks only for sages that were selected by the moderator
+    tasks = []
+    sage_names = []
+
+    # Check which sages have queries and create tasks accordingly
+    for sage in available_sages:
+        if sage in agent_queries:
+            tasks.append(
+                philosophical_sage.ainvoke(
+                    {
+                        "sage": sage,
+                        "query": agent_queries[sage],
+                        "state": state,
+                    }
+                )
+            )
+            sage_names.append(sage)
+
+    # If no sages were selected, use fallback with one
+    if not tasks:
+        logger.error("No sages were selected, using fallback with one sage")
+        user_query = state["user_query"]
+        tasks = [
+            philosophical_sage.ainvoke(
+                {
+                    "sage": "marcus_aurelius",
+                    "query": f"From a Stoic perspective: {user_query}",
+                    "state": state,
+                }
+            )
+        ]
+        sage_names = ["marcus_aurelius"]
 
     try:
         results = await asyncio.gather(*tasks, return_exceptions=True)
 
-        # Process results
+        # Process results for the selected sages
         sage_responses = {}
-        sage_names = ["marcus_aurelius", "nassim_taleb", "naval_ravikant"]
 
         for i, result in enumerate(results):
             if isinstance(result, Exception):

@@ -107,7 +107,6 @@ db: check-deps
 
 .PHONY: dev  ## Run the service with auto-reload
 dev: db
-	$(EXPORT_ENVS)
 	uv run uvicorn council_of_sages.app:app --reload --host 0.0.0.0 --port 8080
 
 .PHONY: run  ## Run the service without auto-reload

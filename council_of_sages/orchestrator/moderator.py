@@ -9,19 +9,32 @@ from .prompt_modules import (
 
 
 class QueryDistributionOutput(BaseModel):
-    """Output model for query distribution decisions"""
+    """Output model for query distribution
+    decisions with optional sage queries"""
 
-    marcus_query: str = Field(
-        description="Specific query for Marcus Aurelius sage"
+    marcus_aurelius: str | None = Field(
+        default=None,
+        description=(
+            "Specific query for Marcus Aurelius sage (only if relevant)"
+        ),
     )
-    taleb_query: str = Field(
-        description="Specific query for Nassim Taleb sage"
+    nassim_taleb: str | None = Field(
+        default=None,
+        description=(
+            "Specific query for Nassim Taleb sage (only if relevant)"
+        ),
     )
-    naval_query: str = Field(
-        description="Specific query for Naval Ravikant sage"
+    naval_ravikant: str | None = Field(
+        default=None,
+        description=(
+            "Specific query for Naval Ravikant sage (only if relevant)"
+        ),
     )
     distribution_rationale: str = Field(
-        description="Explanation of why queries were distributed this way"
+        description=(
+            "Explanation of why these specific sages were selected"
+            " and reasoning for the selection"
+        )
     )
 
 
@@ -49,7 +62,7 @@ class ResponseModerator:
         chat_history: list[tuple[str, str]] | None = None,
     ) -> dict[str, str]:
         """Analyze user query with conversation context and create specific
-        queries for each sage"""
+        queries for selected relevant sages"""
 
         # Format chat history for context
         if chat_history:
@@ -75,14 +88,24 @@ class ResponseModerator:
                 str(response.content)
             )
 
-            return {
-                "marcus_aurelius": parsed_response.marcus_query,
-                "nassim_taleb": parsed_response.taleb_query,
-                "naval_ravikant": parsed_response.naval_query,
+            # Build result dictionary only with selected sages
+            result = {
                 "distribution_rationale": (
                     parsed_response.distribution_rationale
-                ),
+                )
             }
+
+            # Add sage queries only if they were selected (not None)
+            if parsed_response.marcus_aurelius:
+                result["marcus_aurelius"] = parsed_response.marcus_aurelius
+
+            if parsed_response.nassim_taleb:
+                result["nassim_taleb"] = parsed_response.nassim_taleb
+
+            if parsed_response.naval_ravikant:
+                result["naval_ravikant"] = parsed_response.naval_ravikant
+
+            return result
 
         except Exception as e:  # noqa: BLE001
             # Fallback: send the original query to all sages with context
@@ -114,9 +137,22 @@ class ResponseModerator:
         agent_queries: dict[str, str],
         agent_responses: dict[str, str],
         chat_history: list[tuple[str, str]] | None = None,
+        return_raw_answers: bool = True,
     ) -> str:
         """Consolidate multiple sage responses into a single coherent response
         with conversation context"""
+
+        # If return_raw_answers is True, just append the sage responses
+        if return_raw_answers:
+            sage_outputs = "\n\n".join(
+                [
+                    f"""=== {sage_name.upper().replace("_", " ")} ===
+                    {response}"""
+                    for sage_name, response in agent_responses.items()
+                    if sage_name != "error"  # Skip error responses
+                ]
+            )
+            return sage_outputs
 
         # Format chat history for context
         if chat_history:
@@ -129,7 +165,7 @@ class ResponseModerator:
         else:
             conversation_context = "No previous conversation context."
 
-        # Prepare the consolidation prompt
+        # Prepare the consolidation prompt - only include selected sages
         query_context = "\n".join(
             [
                 f"• {sage_name.replace('_', ' ').title()}: {query}"
@@ -142,6 +178,8 @@ class ResponseModerator:
             [
                 f"=== {sage_name.upper().replace('_', ' ')} ===\n{response}"
                 for sage_name, response in agent_responses.items()
+                if sage_name
+                != "error"  # Skip error responses in consolidation
             ]
         )
 
