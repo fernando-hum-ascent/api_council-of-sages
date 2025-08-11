@@ -1,3 +1,4 @@
+import asyncio
 from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
 
@@ -16,10 +17,18 @@ async def lifespan(app: FastAPI) -> AsyncGenerator:
     """Application lifespan manager."""
     # Startup
     logger.info("Starting Council of Sages API...")
-    init_database()
-    yield
-    # Shutdown
-    logger.info("Shutting down Council of Sages API...")
+    try:
+        await asyncio.to_thread(init_database)
+        logger.info("Database initialization completed successfully")
+    except Exception as e:
+        logger.error(f"Failed to initialize database during startup: {e}")
+        raise
+
+    try:
+        yield
+    finally:
+        # Shutdown
+        logger.info("Shutting down Council of Sages API...")
 
 
 app = FastAPI(

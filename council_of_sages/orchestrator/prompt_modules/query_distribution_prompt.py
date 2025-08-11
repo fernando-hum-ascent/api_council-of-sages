@@ -76,13 +76,22 @@ that are not relevant to the current query or would provide redundant advice.
 - format_instructions: {format_instructions} - JSON structure requirements for response
 
 # Expected JSON Response Format
-Return ONLY the sages you want to consult. The response must follow this structure:
+Examples (illustrative, not exhaustive):
+
+Ongoing conversation (one sage selected):
 {{
-  "marcus_aurelius": "specific query for Marcus Aurelius (ONLY if relevant)",
-  "nassim_taleb": "specific query for Nassim Taleb (ONLY if relevant)",
-  "naval_ravikant": "specific query for Naval Ravikant (ONLY if relevant)",
-  "distribution_rationale": "Clear explanation of why you selected these specific sages and your reasoning for the selection based on conversation flow and query content"
+  "distribution_rationale": "We’re iterating on risk framing; Taleb adds the most value now.",
+  "nassim_taleb": "Given X and Y already discussed, what is the smallest convex bet we can place?"
 }}
+
+New conversation (all three sages):
+{{
+  "distribution_rationale": "No prior context; collect complementary perspectives from all sages.",
+  "marcus_aurelius": "From a Stoic lens, what virtues should guide decisions about X?",
+  "nassim_taleb": "What heuristics minimize downside while keeping upside optionality for X?",
+  "naval_ravikant": "What leverage and compounding paths apply to X in modern contexts?"
+}}
+
 
 **Do not include sages that are not relevant to the current query.**
 </instructions>""",
