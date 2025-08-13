@@ -12,7 +12,8 @@ RUN apt-get update \
 
 # Install uv
 RUN curl -LsSf https://astral.sh/uv/install.sh | sh && \
-    ln -s /root/.local/bin/uv /usr/local/bin/uv
+    cp /root/.local/bin/uv /usr/local/bin/uv && \
+    cp /root/.local/bin/uvx /usr/local/bin/uvx || true
 
 # Clean up curl
 RUN apt-get purge -y --auto-remove curl
