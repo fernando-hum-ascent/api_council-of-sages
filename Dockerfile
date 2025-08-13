@@ -43,4 +43,4 @@ USER app
 
 # Command to run the application (override for platforms like Railway/Render)
 # Use shell form to allow $PORT expansion with a default of 8080
-CMD python -m uvicorn council_of_sages.app:app --host 0.0.0.0 --port ${PORT:-8080}
+CMD uv run uvicorn council_of_sages.app:app --host 0.0.0.0 --port ${PORT:-8080}
