@@ -1,6 +1,6 @@
 services:
   - type: web
-    name: council-of-sages-api-dev
+    name: dev_council-of-sages-api-dev
     env: docker
     plan: starter
     branch: dev
