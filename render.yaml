@@ -8,7 +8,7 @@ services:
     dockerfilePath: ./Dockerfile
     dockerContext: .
     autoDeploy: true
-    startCommand: uv run uvicorn council_of_sages.app:app --host 0.0.0.0 --port $PORT
+    dockerCommand: uv run uvicorn council_of_sages.app:app --host 0.0.0.0 --port $PORT
     envVars:
       - key: ENV
         value: development
@@ -38,7 +38,7 @@ services:
     dockerfilePath: ./Dockerfile
     dockerContext: .
     autoDeploy: true
-    startCommand: uv run uvicorn council_of_sages.app:app --host 0.0.0.0 --port $PORT
+    dockerCommand: uv run uvicorn council_of_sages.app:app --host 0.0.0.0 --port $PORT
     envVars:
       - key: ENV
         value: production
