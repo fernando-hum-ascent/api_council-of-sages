@@ -1,0 +1,60 @@
+services:
+  - type: web
+    name: council-of-sages-api-dev
+    env: docker
+    plan: starter
+    branch: dev
+    healthCheckPath: /health
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
+    autoDeploy: true
+    startCommand: uv run uvicorn council_of_sages.app:app --host 0.0.0.0 --port $PORT
+    envVars:
+      - key: ENV
+        value: development
+      - key: DEBUG
+        value: "false"
+      - key: LOG_LEVEL
+        value: INFO
+      - key: CORS_ORIGINS
+        value: '["http://localhost:3000"]'
+      - key: MONGODB_URL
+        sync: false
+      - key: OPENAI_API_KEY
+        sync: false
+      - key: ANTHROPIC_API_KEY
+        sync: false
+      - key: FIREBASE_PROJECT_ID
+        sync: false
+      - key: FIREBASE_SERVICE_ACCOUNT_KEY
+        sync: false
+
+  - type: web
+    name: council-of-sages-api
+    env: docker
+    plan: starter
+    branch: main
+    healthCheckPath: /health
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
+    autoDeploy: true
+    startCommand: uv run uvicorn council_of_sages.app:app --host 0.0.0.0 --port $PORT
+    envVars:
+      - key: ENV
+        value: production
+      - key: DEBUG
+        value: "false"
+      - key: LOG_LEVEL
+        value: INFO
+      - key: CORS_ORIGINS
+        value: '["https://your-frontend-domain"]'
+      - key: MONGODB_URL
+        sync: false
+      - key: OPENAI_API_KEY
+        sync: false
+      - key: ANTHROPIC_API_KEY
+        sync: false
+      - key: FIREBASE_PROJECT_ID
+        sync: false
+      - key: FIREBASE_SERVICE_ACCOUNT_KEY
+        sync: false

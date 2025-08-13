@@ -177,7 +177,7 @@ services:
   - type: web
     name: council-of-sages-api
     env: docker
-    plan: standard
+    plan: starter
     branch: main
     healthCheckPath: /health
     dockerfilePath: ./Dockerfile
