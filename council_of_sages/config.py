@@ -46,6 +46,17 @@ class Config(BaseSettings):
         default=None, description="MongoDB connection URL"
     )
 
+    # Firebase authentication settings
+    firebase_project_id: str = Field(
+        description="Firebase project ID for authentication"
+    )
+    firebase_service_account_key: str = Field(
+        description=(
+            "Firebase service account key as JSON string "
+            "(for environment variables)"
+        )
+    )
+
     @property
     def is_development(self) -> bool:
         """Check if running in development mode"""

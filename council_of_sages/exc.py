@@ -14,3 +14,27 @@ class BaseAppError(Exception):
         self.error_code = error_code
         self.details = details or {}
         super().__init__(self.message)
+
+
+class AuthenticationError(Exception):
+    """Base class for authentication errors"""
+
+    pass
+
+
+class TokenExpiredError(AuthenticationError):
+    """Raised when Firebase token is expired"""
+
+    pass
+
+
+class InvalidTokenError(AuthenticationError):
+    """Raised when Firebase token is invalid"""
+
+    pass
+
+
+class AuthenticationServiceError(AuthenticationError):
+    """Raised when authentication service is unavailable"""
+
+    pass

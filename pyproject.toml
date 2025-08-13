@@ -24,6 +24,8 @@ dependencies = [
     "emoji>=2.14.1",
     "blinker>=1.9.0",
     "mongoengine-plus>=1.0.0",  # Optional: if using MongoDB
+    "firebase-admin>=6.2.0",
+    "python-jose[cryptography]>=3.3.0",  # For JWT token verification
 ]
 
 [dependency-groups]

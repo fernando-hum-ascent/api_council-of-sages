@@ -70,7 +70,7 @@ class OrchestratorRequest(BaseModel):
     """Request model for orchestrator endpoint with conversation support"""
 
     query: str = Field(description="User query to process")
-    user_id: str = Field(description="Unique identifier for the user")
+    # Remove user_id field - will be extracted from Bearer token
     conversation_id: str | None = Field(
         default=None,
         description=(

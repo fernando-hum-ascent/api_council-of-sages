@@ -110,6 +110,11 @@ ANTHROPIC_API_KEY=your_anthropic_key_here
 
 # Database
 MONGODB_URL=mongodb://root:example@localhost:27017/council_of_sages?authSource=admin
+
+# Firebase Authentication (Required)
+FIREBASE_PROJECT_ID=your-firebase-project-id
+# Service account JSON as single line string (get from Firebase Console > Project Settings > Service Accounts)
+FIREBASE_SERVICE_ACCOUNT_KEY={"type":"service_account","project_id":"your-project",...}
 ```
 
 ### 3. Test Setup

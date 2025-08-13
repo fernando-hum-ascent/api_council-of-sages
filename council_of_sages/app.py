@@ -1,18 +1,23 @@
+# flake8: noqa: E402
+from dotenv import load_dotenv
+
+load_dotenv()
+
 import asyncio
 from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
+from typing import Annotated
 
-from dotenv import load_dotenv
-from fastapi import FastAPI
+from fastapi import Depends, FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from loguru import logger
 from pydantic import BaseModel
 
 from .config import config
+from .lib.auth.dependencies import get_current_user_id, set_firebase_auth
+from .lib.auth.firebase_auth import FirebaseAuth
 from .lib.database import init_database
 from .resources.orchestrator import router as orchestrator_router
-
-load_dotenv()
 
 
 @asynccontextmanager
@@ -21,10 +26,21 @@ async def lifespan(app: FastAPI) -> AsyncGenerator:
     # Startup
     logger.info("Starting Council of Sages API...")
     try:
+        # Initialize Firebase Authentication
+        logger.info("Initializing Firebase authentication...")
+        firebase_auth = FirebaseAuth(
+            project_id=config.firebase_project_id,
+            service_account_key=config.firebase_service_account_key,
+        )
+        set_firebase_auth(firebase_auth)
+        logger.info("Firebase authentication initialized successfully")
+
+        # Initialize Database
         await asyncio.to_thread(init_database)
         logger.info("Database initialization completed successfully")
+
     except Exception as e:
-        logger.error(f"Failed to initialize database during startup: {e}")
+        logger.error(f"Failed to initialize services during startup: {e}")
         raise
 
     try:
@@ -36,18 +52,24 @@ async def lifespan(app: FastAPI) -> AsyncGenerator:
 
 app = FastAPI(
     title="Council of Sages",
-    description="FastAPI + LangGraph application",
+    description="FastAPI + LangGraph application with Firebase Authentication",
     version="0.1.0",
     lifespan=lifespan,
 )
 
-# Configure CORS
+# Configure CORS with explicit Authorization header support
 app.add_middleware(
     CORSMiddleware,
     allow_origins=config.cors_origins,
     allow_credentials=config.cors_allow_credentials,
     allow_methods=config.cors_allow_methods,
-    allow_headers=config.cors_allow_headers,
+    allow_headers=[
+        "Accept",
+        "Accept-Language",
+        "Content-Language",
+        "Content-Type",
+        "Authorization",  # Explicitly allow Authorization header for tokens
+    ],
 )
 
 # Include routers
@@ -68,6 +90,17 @@ class HelloResponse(BaseModel):
 async def health() -> HealthResponse:
     """Health check endpoint"""
     return HealthResponse(status="healthy", message="Service is running")
+
+
+@app.get("/health/authenticated")
+async def authenticated_health(
+    user_id: Annotated[str, Depends(get_current_user_id)],
+) -> HealthResponse:
+    """Authenticated health check endpoint to test Firebase auth"""
+    return HealthResponse(
+        status="healthy",
+        message=f"Authenticated service is running for user: {user_id}",
+    )
 
 
 @app.get("/hello/{name}")
