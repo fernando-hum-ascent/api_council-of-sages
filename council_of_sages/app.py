@@ -4,6 +4,7 @@ from dotenv import load_dotenv
 load_dotenv()
 
 import asyncio
+import os
 from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
 from typing import Annotated
@@ -120,4 +121,13 @@ async def root() -> dict[str, str]:
 if __name__ == "__main__":
     import uvicorn
 
-    uvicorn.run(app, host="127.0.0.1", port=8080, reload=True)
+    port_value = os.getenv("PORT", "8080")
+    try:
+        port = int(port_value)
+    except ValueError:
+        logger.warning(
+            f"Invalid PORT value '{port_value}', defaulting to 8080"
+        )
+        port = 8080
+
+    uvicorn.run(app, host="0.0.0.0", port=port)  # noqa: S104

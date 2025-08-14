@@ -42,5 +42,5 @@ RUN useradd -m -u 1000 app \
 USER app
 
 # Command to run the application (override for platforms like Railway/Render)
-# Use exec form with sh -c to ensure ${PORT:-8080} is expanded even without a shell
-CMD ["sh", "-c", "uv run uvicorn council_of_sages.app:app --host 0.0.0.0 --port ${PORTINDOCKERFILE:-8080}"]
+# Run the module so the app reads PORT from env directly without shell expansion
+CMD ["uv", "run", "python", "-m", "council_of_sages.app"]
