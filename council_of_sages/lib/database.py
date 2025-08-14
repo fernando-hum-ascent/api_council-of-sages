@@ -11,7 +11,7 @@ def init_database() -> None:
     if not config.mongodb_url:
         raise ValueError("MONGODB_URL environment variable is required")
 
-    logger.info(f"Connecting to MongoDB: {config.mongodb_url}")
+    logger.info("Connecting to MongoDB")
 
     try:
         connect(host=config.mongodb_url, uuidRepresentation="standard")

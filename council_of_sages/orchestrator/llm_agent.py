@@ -1,6 +1,7 @@
 from typing import TYPE_CHECKING, Any
 
 from langchain_core.messages import AIMessage, BaseMessage, HumanMessage
+from loguru import logger
 
 from ..models.conversations import get_active_conversation_or_create_one
 from ..types import ChatUserEnum
@@ -31,11 +32,14 @@ async def arun_agent(
         - agent_queries: Queries sent to each agent
         - agent_responses: Individual agent responses
     """
+    conversation = None
+    conversation_id_out = conversation_id
     try:
         # Get or create conversation
         conversation = await get_active_conversation_or_create_one(
             user_id, conversation_id
         )
+        conversation_id_out = conversation.id
 
         # Get chat history from conversation
         chat_history = conversation.get_chat_history()
@@ -67,10 +71,21 @@ async def arun_agent(
 
         return output
 
-    except Exception as e:  # noqa: BLE001
+    except Exception:  # noqa: BLE001
+        # Log internally; return a generic message to the client
+        logger.error(
+            "Error executing orchestrator",
+            extra={
+                "action": "orchestrator_run",
+                "user_id": user_id,
+                "incoming_conversation_id": conversation_id,
+                "conversation_id": conversation_id_out,
+            },
+        )
         return {
-            "final_response": f"Error executing orchestrator: {str(e)}",
-            "conversation_id": conversation_id,
+            "final_response": """Sorry,
+            something went wrong while generating a response.""",
+            "conversation_id": conversation_id_out,
             "agent_queries": {},
             "agent_responses": {},
         }

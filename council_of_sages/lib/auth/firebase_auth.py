@@ -69,8 +69,8 @@ class FirebaseAuth:
         try:
             unescaped = stripped.encode("utf-8").decode("unicode_escape")
             return json.loads(unescaped)
-        except Exception as e:
-            raise e
+        except (json.JSONDecodeError, UnicodeDecodeError) as e:
+            raise ValueError(f"Failed to parse service account JSON: {e}")
 
     def _initialize_firebase(self, service_account_key: str | None) -> None:
         """Initialize Firebase Admin SDK"""
