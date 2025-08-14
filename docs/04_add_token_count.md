@@ -22,6 +22,8 @@ This document describes how we will track tokens and cost per user across the AP
   - Unique on `user_id`
 - **Notes**:
   - Use integer cents to avoid floating point issues and simplify atomic `$inc` updates.
+- **methods**
+  - Create a get_or_create async method
 
 Example (conceptual):
 ```python
@@ -32,6 +34,12 @@ class User(BaseModel, AsyncDocument):
     created_at = DateTimeField(default=datetime.utcnow)
     updated_at = DateTimeField(default=datetime.utcnow)
 ```
+1.1) usage_event in mongo
+
+- **File**: `models/usage_event.py`
+- **Purpose**: Auditing and analytics.
+- **Fields**: `user_id`, `request_id`, `model_name`, `input_tokens`, `output_tokens`, `cost_cents`, `provider_request_id`, `status`, `created_at`.
+
 
 ---
 
@@ -172,14 +180,6 @@ def start_usage(user: User, model_name: str, prompt_or_messages, request_id: str
 - **Missing pricing**: If `model_name` not in map, reject the request or require an explicit override.
 - **Rounding**: Keep internal cents; present as USD with two decimals.
 
----
-
-### 10)  Usage analytics model
-
-- **File**: `models/usage_event.py`
-- **Purpose**: Auditing and analytics.
-- **Fields**: `user_id`, `request_id`, `model_name`, `input_tokens`, `output_tokens`, `cost_cents`, `provider_request_id`, `status`, `created_at`.
-
 
 
 ---
@@ -271,7 +271,7 @@ This solidifies Plan A as the single integration approach: wrap the LLM client o
   - Load the `User` record and return `balance_usd` (derived)
   - Keep the endpoint thin; all mutation continues to happen via the billing proxy/service
 
-### 17) Implementation checklist (consolidated; includes items 13–16)
+### 17) Implementation checklist
 
 - **models**:
   - `models/user.py` (balance in cents, default 100; `BaseModel, AsyncDocument`, string id)
