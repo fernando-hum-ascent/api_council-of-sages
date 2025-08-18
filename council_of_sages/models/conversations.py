@@ -49,13 +49,16 @@ class Conversation(BaseModel, AsyncDocument):
         self, content: str | dict, role: ChatUserEnum
     ) -> None:
         """Add a new message to the conversation"""
-        self.messages.append(
-            Message(
-                role=role,
-                content=content,
-            )
+        new_message = Message(
+            role=role,
+            content=content,
         )
-        await self.async_save()
+
+        # Use MongoDB's atomic $push operation to append the message
+        # and explicitly update the timestamp in the same atomic operation
+        await self.__class__.objects.filter(id=self.id).async_update(
+            push__messages=new_message, set__updated_at=datetime.now(UTC)
+        )
 
     def get_chat_history(self) -> list[tuple[str, str]]:
         """Convert messages to chat history format for LangChain"""

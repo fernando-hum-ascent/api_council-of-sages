@@ -1,6 +1,6 @@
 from datetime import UTC, datetime
 
-from mongoengine import DateTimeField, DoesNotExist, IntField, StringField
+from mongoengine import DateTimeField, IntField, NotUniqueError, StringField
 from mongoengine_plus.aio import AsyncDocument
 from mongoengine_plus.models import BaseModel, uuid_field
 from mongoengine_plus.models.event_handlers import updated_at
@@ -39,10 +39,14 @@ class User(BaseModel, AsyncDocument):
         """
         try:
             return await cls.objects.async_get(user_id=user_id)
-        except DoesNotExist:
+        except cls.DoesNotExist:
             user = cls(user_id=user_id)
-            await user.async_save()
-            return user
+            try:
+                await user.async_save()
+                return user
+            except NotUniqueError:
+                # Another request created this user concurrently; fetch it.
+                return await cls.objects.async_get(user_id=user_id)
 
     def as_balance(self) -> Balance:
         """Convert to Balance Pydantic model
@@ -72,10 +76,12 @@ class User(BaseModel, AsyncDocument):
                 (positive = deduction)
         """
         # Use MongoDB's atomic $inc operation for thread-safe balance updates
+        # Also update updated_at timestamp in the same atomic operation
         await self.__class__.objects.filter(id=self.id).async_update(
-            dec__balance_tenths_of_cents=amount_tenths_of_cents
+            dec__balance_tenths_of_cents=amount_tenths_of_cents,
+            set__updated_at=datetime.now(UTC),
         )
-        # Reload to get updated balance
+        # Reload to get updated balance and timestamp
         reloaded_user = await self.__class__.objects.async_get(id=self.id)
         self.balance_tenths_of_cents = reloaded_user.balance_tenths_of_cents
         self.updated_at = reloaded_user.updated_at

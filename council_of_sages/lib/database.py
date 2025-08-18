@@ -16,6 +16,6 @@ def init_database() -> None:
     try:
         connect(host=config.mongodb_url, uuidRepresentation="standard")
         logger.info("Successfully connected to MongoDB")
-    except Exception as e:
-        logger.error(f"Failed to connect to MongoDB: {e}")
+    except Exception:
+        logger.error("Failed to connect to MongoDB")
         raise

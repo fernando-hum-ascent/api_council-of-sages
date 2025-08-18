@@ -38,7 +38,7 @@ from types import ChatUserEnum
 class Message(EmbeddedDocument):
     """Individual message in a conversation"""
     id = StringField(primary_key=True, default=uuid_field("MSG_"))
-    role = EnumField(ChatUserEnum, required=True)  # 'human' or 'ai'
+    role = EnumField(ChatUserEnum, required=True)  # ChatUserEnum.human or ChatUserEnum.ai
     content = DynamicField(required=True)  # Supports both string and dict content
     timestamp = DateTimeField(default=lambda: datetime.now(UTC))
 
@@ -63,7 +63,7 @@ class Conversation(BaseModel, AsyncDocument):
         """Add a new message to the conversation"""
         self.messages.append(
             Message(
-                role=role.value,
+                role=role,
                 content=content,
                 timestamp=datetime.now(UTC)
             )
@@ -180,15 +180,14 @@ from langchain_core.prompts import PromptTemplate
 from langchain_anthropic import ChatAnthropic
 from pydantic import BaseModel, Field
 
-from types import SageEnum
+from council_of_sages.types import SageEnum
 
 
 class PhilosophicalSageInput(BaseModel):
     """Input model for the unified philosophical sage tool"""
     sage: SageEnum = Field(description="Which philosophical sage to consult")
     query: str = Field(description="Query for the sage")
-    chat_history: list[tuple[str, str]] = Field(default=[], description="Previous conversation context")
-
+    chat_history: list[tuple[str, str]] = Field(default_factory=list, description="Previous conversation context")
 
 # Sage configurations with their specific settings
 SAGE_CONFIGS = {
@@ -523,7 +522,7 @@ class ResponseModerator:
 import asyncio
 from typing import Literal
 from langgraph.graph import END, StateGraph
-from langchain_core.messages import HumanMessage
+from langchain_core.messages import HumanMessage, AIMessage
 
 from .states import OrchestratorState
 from .tools.philosophical_sage import philosophical_sage
@@ -606,13 +605,13 @@ async def consolidation_node(state: OrchestratorState) -> dict[str, list]:
         )
 
         return {
-            "messages": [HumanMessage(content=consolidated_response)],
+            "messages": [AIMessage(content=consolidated_response)],
             "final_response": consolidated_response
         }
 
     except Exception as e:
         return {
-            "messages": [HumanMessage(content=f"Error consolidating responses: {str(e)}")],
+            "messages": [AIMessage(content=f"Error consolidating responses: {str(e)}")],
             "final_response": f"Error: {str(e)}"
         }
 
@@ -809,8 +808,7 @@ from typing import Any
 from fastapi import FastAPI, HTTPException, status
 
 from orchestrator.llm_agent import arun_agent
-from types import OrchestratorRequest, OrchestratorResponse
-
+from council_of_sages.types import OrchestratorRequest, OrchestratorResponse
 
 app = FastAPI(title="Sage Orchestrator API")
 
