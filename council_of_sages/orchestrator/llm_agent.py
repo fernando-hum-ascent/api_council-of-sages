@@ -3,18 +3,23 @@ from typing import TYPE_CHECKING, Any
 from langchain_core.messages import AIMessage, BaseMessage, HumanMessage
 from loguru import logger
 
+from ..exc import PaymentRequiredError
+from ..lib.billing.service import perform_pre_request_checks
 from ..models.conversations import get_active_conversation_or_create_one
-from ..types import ChatUserEnum
+from ..models.user import User
+from ..types import ChatUserEnum, OrchestratorResponse
 
 if TYPE_CHECKING:
     from ..models.conversations import Conversation
+from fastapi import HTTPException, status
+
 from .graph_definition import orchestrator_graph
 from .states import OrchestratorState
 
 
 async def arun_agent(
     query: str, user_id: str, conversation_id: str | None = None
-) -> dict[str, Any]:
+) -> OrchestratorResponse:
     """
     Main function to execute the orchestrator graph with conversation
     persistence.
@@ -26,15 +31,19 @@ async def arun_agent(
             conversation
 
     Returns:
-        Dictionary containing:
-        - final_response: The consolidated response
-        - conversation_id: The conversation ID (existing or newly created)
-        - agent_queries: Queries sent to each agent
-        - agent_responses: Individual agent responses
+        OrchestratorResponse with sage wisdom, conversation details, and
+        billing information
+
+    Raises:
+        PaymentRequiredError: If user has insufficient balance
+        RuntimeError: If billing information is not found in context
     """
     conversation = None
     conversation_id_out = conversation_id
     try:
+        # Pre-request balance check - fail fast if insufficient funds
+        await perform_pre_request_checks(user_id)
+
         # Get or create conversation
         conversation = await get_active_conversation_or_create_one(
             user_id, conversation_id
@@ -61,16 +70,23 @@ async def arun_agent(
         # Save conversation messages
         await save_conversation_messages(conversation, query, final_response)
 
-        # Build the output dictionary
-        output = {
-            "final_response": final_response,
-            "conversation_id": conversation.id,
-            "agent_queries": result.get("agent_queries", {}),
-            "agent_responses": result.get("agent_responses", {}),
-        }
+        # Get current user balance from database (source of truth)
+        current_balance = await User.get_current_balance(user_id)
 
-        return output
-
+        # Return OrchestratorResponse directly
+        return OrchestratorResponse(
+            response=final_response,
+            conversation_id=conversation.id,
+            agent_queries=result.get("agent_queries", {}),
+            agent_responses=result.get("agent_responses", {}),
+            balance=current_balance,
+        )
+    except PaymentRequiredError as e:
+        logger.warning(f"Payment required for user {user_id}: {e.message}")
+        raise HTTPException(
+            status_code=status.HTTP_402_PAYMENT_REQUIRED,
+            detail=e.message,
+        )
     except Exception:  # noqa: BLE001
         # Log internally; return a generic message to the client
         logger.error(
@@ -82,13 +98,14 @@ async def arun_agent(
                 "conversation_id": conversation_id_out,
             },
         )
-        return {
-            "final_response": """Sorry,
+        return OrchestratorResponse(
+            response="""Sorry,
             something went wrong while generating a response.""",
-            "conversation_id": conversation_id_out,
-            "agent_queries": {},
-            "agent_responses": {},
-        }
+            conversation_id=conversation_id_out or "",
+            agent_queries={},
+            agent_responses={},
+            balance=None,
+        )
 
 
 def build_orchestrator_state(

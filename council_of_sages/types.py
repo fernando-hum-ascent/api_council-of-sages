@@ -1,3 +1,4 @@
+from datetime import datetime
 from enum import Enum
 from typing import Any
 
@@ -79,6 +80,16 @@ class OrchestratorRequest(BaseModel):
     )
 
 
+class Balance(BaseModel):
+    """User balance information"""
+
+    balance_tenths_of_cents: int = Field(
+        description="Balance in integer tenths of cents"
+    )
+    balance_usd: float = Field(description="Balance in USD (derived)")
+    updated_at: datetime = Field(description="Last update timestamp")
+
+
 class OrchestratorResponse(BaseModel):
     """Response model for orchestrator endpoint"""
 
@@ -90,3 +101,18 @@ class OrchestratorResponse(BaseModel):
     agent_responses: dict[str, str] = Field(
         description="Individual agent responses"
     )
+    balance: Balance | None = Field(
+        default=None, description="User balance information if available"
+    )
+
+
+class BillingInfo(BaseModel):
+    """Billing information for an LLM request"""
+
+    model_name: str = Field(description="Name of the model used")
+    input_tokens: int = Field(description="Number of input tokens")
+    output_tokens: int = Field(description="Number of output tokens")
+    cost_tenths_of_cents: int = Field(
+        description="Cost in integer tenths of cents"
+    )
+    balance: Balance = Field(description="Updated user balance")

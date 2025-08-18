@@ -38,3 +38,18 @@ class AuthenticationServiceError(AuthenticationError):
     """Raised when authentication service is unavailable"""
 
     pass
+
+
+class PaymentRequiredError(BaseAppError):
+    """Raised when user has insufficient funds for LLM requests"""
+
+    def __init__(
+        self,
+        message: str = "Insufficient balance",
+        details: dict[str, Any] | None = None,
+    ) -> None:
+        super().__init__(
+            message=message,
+            error_code="PAYMENT_REQUIRED",
+            details=details or {},
+        )

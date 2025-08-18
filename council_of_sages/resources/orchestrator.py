@@ -1,8 +1,7 @@
 from typing import Annotated, Any
 
-from fastapi import Depends, HTTPException, status
+from fastapi import Depends, status
 from fastapi.routing import APIRouter
-from loguru import logger
 
 from ..lib.auth.dependencies import get_current_user_id
 from ..orchestrator.llm_agent import arun_agent
@@ -22,6 +21,21 @@ RESPONSES: dict[int | str, dict[str, Any]] = {
         "content": {
             "application/json": {
                 "example": {"detail": "Invalid authentication token"}
+            }
+        },
+    },
+    status.HTTP_402_PAYMENT_REQUIRED: {
+        "description": "Insufficient balance for LLM requests",
+        "content": {
+            "application/json": {
+                "example": {
+                    "detail": "Insufficient balance",
+                    "balance": {
+                        "balance_tenths_of_cents": -50,
+                        "balance_usd": -0.05,
+                        "updated_at": "2025-08-15T12:34:56Z",
+                    },
+                }
             }
         },
     },
@@ -81,24 +95,9 @@ async def run_orchestrator_endpoint(
         HTTPException: 401 for authentication failures, 500 for execution
         errors
     """
-    try:
-        # Call the orchestrator sage function with conversation support
-        result = await arun_agent(
-            query=request.query,
-            user_id=user_id,  # Now comes from authenticated token
-            conversation_id=request.conversation_id,
-        )
 
-        return OrchestratorResponse(
-            response=result["final_response"],
-            conversation_id=result["conversation_id"],
-            agent_queries=result["agent_queries"],
-            agent_responses=result["agent_responses"],
-        )
-
-    except Exception as e:  # noqa: BLE001
-        logger.error(f"Orchestrator execution failed for user {user_id}: {e}")
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Sage orchestrator execution failed: {str(e)}",
-        )
+    return await arun_agent(
+        query=request.query,
+        user_id=user_id,  # Now comes from authenticated token
+        conversation_id=request.conversation_id,
+    )

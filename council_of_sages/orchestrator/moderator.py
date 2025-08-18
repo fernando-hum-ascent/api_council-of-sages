@@ -2,6 +2,7 @@ from langchain_anthropic import ChatAnthropic
 from langchain_core.output_parsers import PydanticOutputParser
 from pydantic import BaseModel, Field
 
+from ..lib.billing.billing_llm_proxy import BillingLLMProxy
 from .prompt_modules import (
     QUERY_DISTRIBUTION_PROMPT,
     RESPONSE_CONSOLIDATION_PROMPT,
@@ -43,15 +44,20 @@ class ResponseModerator:
     conversation context"""
 
     def __init__(self) -> None:
-        # Initialize LLMs using prompt model configurations
-        self.distribution_llm = ChatAnthropic(
+        # Initialize LLMs using prompt model configurations and wrap with
+        # billing proxy
+        raw_distribution_llm = ChatAnthropic(
             model=QUERY_DISTRIBUTION_PROMPT.model,
             temperature=QUERY_DISTRIBUTION_PROMPT.temperature,
         )
-        self.consolidation_llm = ChatAnthropic(
+        raw_consolidation_llm = ChatAnthropic(
             model=RESPONSE_CONSOLIDATION_PROMPT.model,
             temperature=RESPONSE_CONSOLIDATION_PROMPT.temperature,
         )
+
+        # Wrap with billing proxy
+        self.distribution_llm = BillingLLMProxy(raw_distribution_llm)
+        self.consolidation_llm = BillingLLMProxy(raw_consolidation_llm)
         self.distribution_parser: PydanticOutputParser[
             QueryDistributionOutput
         ] = PydanticOutputParser(pydantic_object=QueryDistributionOutput)

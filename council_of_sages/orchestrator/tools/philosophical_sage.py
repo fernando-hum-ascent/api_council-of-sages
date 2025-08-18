@@ -5,6 +5,7 @@ from langchain_core.tools import StructuredTool
 from langgraph.prebuilt import InjectedState
 from pydantic import BaseModel, Field
 
+from ...lib.billing.billing_llm_proxy import BillingLLMProxy
 from ...types import SageEnum
 from ..prompt_modules import (
     MARCUS_AURELIUS_PROMPT,
@@ -20,6 +21,29 @@ class PhilosophicalSageInput(BaseModel):
     sage: SageEnum = Field(description="Which philosophical sage to consult")
     query: str = Field(description="Query for the sage")
     state: Annotated[OrchestratorState | None, InjectedState]
+
+
+# Pre-constructed and wrapped LLM instances (singleton pattern for billing)
+_SAGE_LLMS = {}
+
+
+def _get_sage_llm(sage: SageEnum) -> BillingLLMProxy:
+    """Get or create a billing-wrapped LLM for the sage (singleton pattern)"""
+    if sage not in _SAGE_LLMS:
+        sage_configs = {
+            SageEnum.marcus_aurelius: MARCUS_AURELIUS_PROMPT,
+            SageEnum.nassim_taleb: NASSIM_TALEB_PROMPT,
+            SageEnum.naval_ravikant: NAVAL_RAVIKANT_PROMPT,
+        }
+
+        prompt_model = sage_configs[sage]
+        raw_llm = ChatAnthropic(
+            model=prompt_model.model,
+            temperature=prompt_model.temperature,
+        )
+        _SAGE_LLMS[sage] = BillingLLMProxy(raw_llm)
+
+    return _SAGE_LLMS[sage]
 
 
 # Sage configurations with their specific settings
@@ -52,16 +76,11 @@ async def philosophical_sage_function(
     config = SAGE_CONFIGS[sage]
     prompt_model = config["prompt"]
 
-    # Type assertion for mypy
-    assert hasattr(prompt_model, "model")
-    assert hasattr(prompt_model, "temperature")
-    assert hasattr(prompt_model, "template")
+    # Get the pre-wrapped LLM instance
+    llm = _get_sage_llm(sage)
 
-    # Create LLM instance with sage-specific settings from prompt model
-    llm = ChatAnthropic(
-        model=prompt_model.model,
-        temperature=prompt_model.temperature,
-    )
+    # Type assertion for mypy
+    assert hasattr(prompt_model, "template")
 
     # Extract chat history from injected state
     chat_history = state.get("chat_history", [])

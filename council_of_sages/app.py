@@ -19,6 +19,7 @@ from .lib.auth.dependencies import get_current_user_id, set_firebase_auth
 from .lib.auth.firebase_auth import FirebaseAuth
 from .lib.database import init_database
 from .resources.orchestrator import router as orchestrator_router
+from .resources.users import router as users_router
 
 
 @asynccontextmanager
@@ -75,6 +76,7 @@ app.add_middleware(
 
 # Include routers
 app.include_router(orchestrator_router)
+app.include_router(users_router)
 
 
 class HealthResponse(BaseModel):

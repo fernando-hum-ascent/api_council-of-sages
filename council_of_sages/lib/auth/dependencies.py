@@ -4,6 +4,7 @@ from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from loguru import logger
 
+from .context import set_current_user_id
 from .firebase_auth import FirebaseAuth
 
 # Initialize HTTPBearer security scheme
@@ -69,6 +70,10 @@ async def get_current_user_id(
         user_id = firebase_auth.get_user_id_from_token(decoded_token)
 
         logger.debug(f"Authentication successful for user: {user_id}")
+
+        # Set user ID in context for billing
+        set_current_user_id(user_id)
+
         return user_id
 
     except HTTPException:

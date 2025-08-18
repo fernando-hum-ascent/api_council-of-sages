@@ -18,31 +18,8 @@ async def query_distribution_node(
     user_query = state["user_query"]
     chat_history = state.get("chat_history", [])
 
-    try:
-        sage_queries = await moderator.distribute_query(
-            user_query, chat_history
-        )
-        return {"agent_queries": sage_queries}
-
-    except Exception as e:  # noqa: BLE001
-        # Fallback queries if distribution fails
-        context_note = " (with conversation context)" if chat_history else ""
-        fallback_queries = {
-            "marcus_aurelius": (
-                f"From a Stoic perspective{context_note}: {user_query}"
-            ),
-            "nassim_taleb": (
-                f"From an antifragile perspective{context_note}: {user_query}"
-            ),
-            "naval_ravikant": (
-                f"From an entrepreneurial philosophy perspective"
-                f"{context_note}: {user_query}"
-            ),
-            "distribution_rationale": (
-                f"Fallback distribution due to error: {str(e)}"
-            ),
-        }
-        return {"agent_queries": fallback_queries}
+    sage_queries = await moderator.distribute_query(user_query, chat_history)
+    return {"agent_queries": sage_queries}
 
 
 async def parallel_sages_node(
