@@ -26,6 +26,7 @@ dependencies = [
     "mongoengine-plus>=1.0.0",  # Optional: if using MongoDB
     "firebase-admin>=6.2.0",
     "python-jose[cryptography]>=3.3.0",  # For JWT token verification
+    "stripe>=10.0.0",
 ]
 
 [dependency-groups]

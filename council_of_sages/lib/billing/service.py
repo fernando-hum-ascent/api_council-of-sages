@@ -63,7 +63,7 @@ async def process_billing(
     )
 
     # Update user balance atomically
-    await user.async_modify_balance(cost_tenths_of_cents)
+    await user.async_decrease_balance(cost_tenths_of_cents)
 
     # Log usage event (with idempotency)
     try:

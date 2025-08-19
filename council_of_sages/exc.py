@@ -53,3 +53,18 @@ class PaymentRequiredError(BaseAppError):
             error_code="PAYMENT_REQUIRED",
             details=details or {},
         )
+
+
+class ValidationError(BaseAppError):
+    """Raised when input validation fails"""
+
+    def __init__(
+        self,
+        message: str,
+        details: dict[str, Any] | None = None,
+    ) -> None:
+        super().__init__(
+            message=message,
+            error_code="VALIDATION_ERROR",
+            details=details or {},
+        )

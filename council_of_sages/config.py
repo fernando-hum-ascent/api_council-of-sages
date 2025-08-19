@@ -57,6 +57,20 @@ class Config(BaseSettings):
         )
     )
 
+    # Stripe payment settings
+    stripe_secret_key: str = Field(
+        description="Stripe secret key for payment processing"
+    )
+    stripe_webhook_secret: str = Field(
+        description="Stripe webhook endpoint secret for signature verification"
+    )
+    payments_min_topup_usd: float = Field(
+        default=1.0, description="Minimum top-up amount in USD"
+    )
+    payments_max_topup_usd: float = Field(
+        default=500.0, description="Maximum top-up amount in USD"
+    )
+
     @property
     def is_development(self) -> bool:
         """Check if running in development mode"""

@@ -68,7 +68,9 @@ class User(BaseModel, AsyncDocument):
         """
         return self.as_balance().model_dump()
 
-    async def async_modify_balance(self, amount_tenths_of_cents: int) -> None:
+    async def async_decrease_balance(
+        self, amount_tenths_of_cents: int
+    ) -> None:
         """Atomically modify user balance
 
         Args:
@@ -79,6 +81,22 @@ class User(BaseModel, AsyncDocument):
         # Also update updated_at timestamp in the same atomic operation
         await self.__class__.objects.filter(id=self.id).async_update(
             dec__balance_tenths_of_cents=amount_tenths_of_cents,
+            set__updated_at=datetime.now(UTC),
+        )
+        # Reload to get updated balance and timestamp
+        reloaded_user = await self.__class__.objects.async_get(id=self.id)
+        self.balance_tenths_of_cents = reloaded_user.balance_tenths_of_cents
+        self.updated_at = reloaded_user.updated_at
+
+    async def async_add_balance(self, credited_tenths: int) -> None:
+        """Atomically credit user balance
+
+        Args:
+            credited_tenths: Amount to add to balance (positive = credit)
+        """
+        # Use MongoDB's atomic $inc operation for thread-safe balance updates
+        await self.__class__.objects.filter(id=self.id).async_update(
+            inc__balance_tenths_of_cents=credited_tenths,
             set__updated_at=datetime.now(UTC),
         )
         # Reload to get updated balance and timestamp
