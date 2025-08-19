@@ -1,7 +1,16 @@
+from typing import TYPE_CHECKING
+
 import stripe
 from fastapi import HTTPException, Request, Response, status
 from fastapi.routing import APIRouter
 from loguru import logger
+
+if TYPE_CHECKING:
+    from stripe._error import SignatureVerificationError
+else:
+    from stripe.error import (
+        SignatureVerificationError,  # type: ignore[attr-defined]
+    )
 
 from ..config import config
 from ..lib.billing.webhook_handlers import (
@@ -65,8 +74,8 @@ async def stripe_webhook(request: Request) -> Response:
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Invalid payload",
         )
-    except stripe.SignatureVerificationError:
-        logger.error("Invalid signature in Stripe webhook")
+    except SignatureVerificationError as e:
+        logger.error(f"Invalid signature in Stripe webhook: {e}")
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Invalid signature",

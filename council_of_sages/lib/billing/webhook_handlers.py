@@ -15,11 +15,15 @@ async def handle_payment_succeeded(intent: dict, event_id: str) -> None:
         event_id: Stripe event ID for idempotency
     """
     intent_id = intent["id"]
-    amount_received = intent["amount_received"]
-    user_id = intent["metadata"].get("user_id")
-    requested_tenths_str = intent["metadata"].get(
-        "requested_amount_tenths_of_cents"
-    )
+    try:
+        amount_received = intent["amount_received"]
+        user_id = intent["metadata"].get("user_id")
+        requested_tenths_str = intent["metadata"].get(
+            "requested_amount_tenths_of_cents"
+        )
+    except (KeyError, TypeError) as e:
+        logger.error(f"Invalid intent structure for {intent_id}: {e}")
+        return
 
     if not user_id:
         logger.error(f"PaymentIntent {intent_id} missing user_id in metadata")
@@ -32,55 +36,45 @@ async def handle_payment_succeeded(intent: dict, event_id: str) -> None:
     except ValueError:
         requested_tenths = None
 
-    # Convert received amount to tenths of cents
-    credited_tenths = cents_to_tenths_of_cents(amount_received)
+    try:
+        # Convert received amount to tenths of cents
+        credited_tenths = cents_to_tenths_of_cents(amount_received)
 
-    # Get or create user
-    user = await User.get_or_create(user_id)
+        # Get or create user
+        user = await User.get_or_create(user_id)
 
-    # Upsert payment record with idempotency
-    payment = await Payment.upsert_from_intent(
-        stripe_intent_id=intent_id,
-        stripe_event_id=event_id,
-        user_internal_id=user.id,
-        user_id=user_id,
-        amount_cents=amount_received,
-        status="succeeded",
-        requested_amount_tenths_of_cents=requested_tenths,
-        credited_tenths_of_cents=credited_tenths,
-    )
+        # Upsert payment record with idempotency
+        await Payment.upsert_from_intent(
+            stripe_intent_id=intent_id,
+            stripe_event_id=event_id,
+            user_internal_id=user.id,
+            user_id=user_id,
+            amount_cents=amount_received,
+            status="succeeded",
+            requested_amount_tenths_of_cents=requested_tenths,
+            credited_tenths_of_cents=credited_tenths,
+        )
 
-    # Credit user balance atomically (only if not already processed)
-    if payment.credited_tenths_of_cents == credited_tenths:
-        # Check if this is a new payment or update
-        try:
-            # Try to find existing successful payment with same intent
-            existing = await Payment.objects.async_get(
-                stripe_intent_id=intent_id,
-                status="succeeded",
+        # Atomically mark processed and credit once
+        did_credit = await Payment.credit_if_not_processed(
+            stripe_intent_id=intent_id,
+            user=user,
+            credited_tenths_of_cents=credited_tenths,
+        )
+        if did_credit:
+            logger.info(
+                f"Successfully credited {credited_tenths} tenths-of-cents "
+                f"(${credited_tenths / 1000:.2f}) to user {user_id} "
+                f"from PaymentIntent {intent_id}"
             )
-            if existing.id != payment.id:
-                # Another payment record exists, skip balance update
-                logger.warning(
-                    f"Duplicate payment found for intent {intent_id}, "
-                    f"skipping balance credit"
-                )
-                return
-        except Payment.DoesNotExist:
-            pass
-
-        # Credit the balance
-        await user.async_add_balance(credited_tenths)
-
-        logger.info(
-            f"Successfully credited {credited_tenths} tenths-of-cents "
-            f"(${credited_tenths / 1000:.2f}) to user {user_id} "
-            f"from PaymentIntent {intent_id}"
-        )
-    else:
-        logger.info(
-            f"PaymentIntent {intent_id} already processed for user {user_id}"
-        )
+        else:
+            logger.info(
+                f"""PaymentIntent {intent_id},
+                 already processed for user {user_id}"""
+            )
+    except Exception as e:
+        logger.error(f"Failed to process payment {intent_id}: {e}")
+        raise  # Re-raise to signal webhook retry
 
 
 async def handle_payment_failed(intent: dict, event_id: str) -> None:

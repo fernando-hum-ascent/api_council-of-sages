@@ -1,9 +1,14 @@
 from datetime import UTC, datetime
+from typing import TYPE_CHECKING
 
-from mongoengine import DateTimeField, IntField, StringField
+from mongoengine import BooleanField, DateTimeField, IntField, StringField
 from mongoengine_plus.aio import AsyncDocument
 from mongoengine_plus.models import BaseModel, uuid_field
 from mongoengine_plus.models.event_handlers import updated_at
+
+if TYPE_CHECKING:
+    # Avoid runtime import cycles while keeping type hints
+    from .user import User
 
 
 @updated_at.apply
@@ -49,6 +54,8 @@ class Payment(BaseModel, AsyncDocument):
     # Audit fields
     requested_amount_tenths_of_cents = IntField()  # From metadata
     credited_tenths_of_cents = IntField()  # What was actually credited
+    processed = BooleanField(default=False)  # Whether credit was applied
+    processed_at = DateTimeField()  # When credit was applied
 
     # Timestamps
     created_at = DateTimeField(default=lambda: datetime.now(UTC))
@@ -118,3 +125,38 @@ class Payment(BaseModel, AsyncDocument):
             )
             await payment.async_save()
             return payment
+
+    @classmethod
+    async def credit_if_not_processed(
+        cls,
+        *,
+        stripe_intent_id: str,
+        user: "User",
+        credited_tenths_of_cents: int,
+    ) -> bool:
+        """Atomically mark payment as processed and credit user once.
+
+        Ensures only one concurrent handler applies the credit by updating the
+        Payment document only if it has not been processed yet.
+
+        Returns True if this call applied the credit, False if already
+        processed by another handler.
+        """
+        # Attempt to atomically mark as processed only if not already
+        updated_count = await cls.objects.filter(
+            stripe_intent_id=stripe_intent_id,
+            status="succeeded",
+            processed=False,
+        ).async_update(
+            set__processed=True,
+            set__processed_at=datetime.now(UTC),
+            set__credited_tenths_of_cents=credited_tenths_of_cents,
+            set__updated_at=datetime.now(UTC),
+        )
+
+        if updated_count:
+            # We were the first to process; apply balance credit
+            await user.async_add_balance(credited_tenths_of_cents)
+            return True
+
+        return False
