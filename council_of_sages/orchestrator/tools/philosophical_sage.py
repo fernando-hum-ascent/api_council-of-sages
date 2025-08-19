@@ -106,12 +106,9 @@ async def philosophical_sage_function(
     response = await llm.ainvoke(formatted_prompt)
 
     # Return the response with sage-specific formatting
-    sage_response = f"""
-{config["response_header"]}
+    sage_response = f"""{config["response_header"]}
 
 {response.content}
-
-{config["response_footer"]}
 """
     return sage_response
 
