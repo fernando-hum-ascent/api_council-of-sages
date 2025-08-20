@@ -3,7 +3,7 @@ from ...lib.prompting import PromptModel
 
 QUERY_DISTRIBUTION_PROMPT = PromptModel(
     prompt_name="query_distribution_moderator",
-    model="claude-3-5-haiku-20241022",
+    model="claude-sonnet-4-20250514",
     json_format=True,  # Returns structured JSON with queries for each sage
     temperature=0.2,  # Low temperature for consistent, logical distribution
     template="""

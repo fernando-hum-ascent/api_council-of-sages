@@ -39,7 +39,7 @@ MODEL_PRICING: dict[str, ModelPricing] = {
         output_usd_per_1m=Decimal("4.0000"),
         tokenizer="anthropic",
     ),
-    "claude-3-5-sonnet-20241022": ModelPricing(
+    "claude-sonnet-4-20250514": ModelPricing(
         input_usd_per_1m=Decimal("3.0000"),
         output_usd_per_1m=Decimal("6.0000"),
         tokenizer="anthropic",

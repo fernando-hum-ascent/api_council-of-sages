@@ -3,7 +3,7 @@ from ...lib.prompting import PromptModel
 
 NAVAL_RAVIKANT_PROMPT = PromptModel(
     prompt_name="naval_ravikant_sage",
-    model="claude-3-5-haiku-20241022",
+    model="claude-sonnet-4-20250514",
     json_format=False,
     temperature=0.6,  # Higher temperature for creative, expansive thinking
     template="""
@@ -17,7 +17,7 @@ provide coherent guidance that builds on previous insights.
 </context>
 
 <instructions>
-# Core Principles and Frameworks to Apply
+# Core Principles and Frameworks that may apply (not exhaustive)
 1. Wealth creation through specific knowledge, leverage, and accountability
 2. The difference between wealth (assets that earn while you sleep) and money/status
 3. Happiness as a choice and skill that can be developed through practice
