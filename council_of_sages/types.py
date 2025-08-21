@@ -67,6 +67,13 @@ class SageEnum(str, Enum):
     naval_ravikant = "naval_ravikant"
 
 
+class SageResponse(BaseModel):
+    """Structured response from a philosophical sage"""
+
+    answer: str = Field(description="Detailed response from the sage")
+    summary: str = Field(description="Concise summary for future context")
+
+
 class OrchestratorRequest(BaseModel):
     """Request model for orchestrator endpoint with conversation support"""
 
@@ -99,7 +106,13 @@ class OrchestratorResponse(BaseModel):
         description="Queries sent to each agent"
     )
     agent_responses: dict[str, str] = Field(
-        description="Individual agent responses"
+        description="Individual agent answers (simplified responses)"
+    )
+    moderator_responses: dict[str, Any] | None = Field(
+        default=None,
+        description=(
+            "Moderator operation results (query distribution, consolidation)"
+        ),
     )
     balance: Balance | None = Field(
         default=None, description="User balance information if available"

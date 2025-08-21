@@ -1,9 +1,11 @@
 import asyncio
+from typing import Any
 
 from langchain_core.messages import HumanMessage
 from langgraph.graph import END, StateGraph
 from loguru import logger
 
+from ..types import SageResponse
 from .moderator import ResponseModerator
 from .states import OrchestratorState
 from .tools.philosophical_sage import philosophical_sage
@@ -11,44 +13,50 @@ from .tools.philosophical_sage import philosophical_sage
 
 async def query_distribution_node(
     state: OrchestratorState,
-) -> dict[str, dict[str, str]]:
+) -> dict[str, Any]:
     """Moderator analyzes user query with conversation context and creates
     specific queries for each sage"""
     moderator = ResponseModerator()
     user_query = state["user_query"]
     chat_history = state.get("chat_history", [])
 
-    sage_queries = await moderator.distribute_query(user_query, chat_history)
-    return {"agent_queries": sage_queries}
+    # Get the full moderator response for tracking
+    moderator_result = await moderator.distribute_query(
+        user_query, chat_history
+    )
+
+    # Extract sage queries for the next node
+    sage_queries = moderator_result["sage_queries"]
+
+    return {
+        "agent_queries": sage_queries,
+        "moderator_responses": {"query_distribution": moderator_result},
+    }
 
 
 async def parallel_sages_node(
     state: OrchestratorState,
-) -> dict[str, dict[str, str]]:
+) -> dict[str, dict[str, SageResponse]]:
     """Execute selected sages in parallel with their specific queries and
     conversation context"""
     agent_queries = state["agent_queries"]
-
-    # Define available sages
-    available_sages = ["marcus_aurelius", "nassim_taleb", "naval_ravikant"]
 
     # Prepare tasks only for sages that were selected by the moderator
     tasks = []
     sage_names = []
 
-    # Check which sages have queries and create tasks accordingly
-    for sage in available_sages:
-        if sage in agent_queries:
-            tasks.append(
-                philosophical_sage.ainvoke(
-                    {
-                        "sage": sage,
-                        "query": agent_queries[sage],
-                        "state": state,
-                    }
-                )
+    # Dynamically iterate over agent_queries keys instead of hardcoded list
+    for sage_name, query in agent_queries.items():
+        tasks.append(
+            philosophical_sage.ainvoke(
+                {
+                    "sage": sage_name,
+                    "query": query,
+                    "state": state,
+                }
             )
-            sage_names.append(sage)
+        )
+        sage_names.append(sage_name)
 
     # If no sages were selected, use fallback with one
     if not tasks:
@@ -73,47 +81,75 @@ async def parallel_sages_node(
 
         for i, result in enumerate(results):
             if isinstance(result, Exception):
-                sage_responses[sage_names[i]] = f"Error: {str(result)}"
+                # Return structured error response
+                sage_responses[sage_names[i]] = SageResponse(
+                    answer=f"Error: {str(result)}",
+                    summary="Error invoking sage.",
+                )
             else:
-                sage_responses[sage_names[i]] = str(result)
+                # result is already a SageResponse from the updated function
+                sage_responses[sage_names[i]] = result  # type: ignore[assignment]
 
         return {"agent_responses": sage_responses}
 
     except Exception as e:  # noqa: BLE001
         return {
-            "agent_responses": {"error": f"Failed to execute sages: {str(e)}"}
+            "agent_responses": {
+                "error": SageResponse(
+                    answer=f"Failed to execute sages: {str(e)}",
+                    summary="Error executing sages.",
+                )
+            }
         }
 
 
 async def consolidation_node(
     state: OrchestratorState,
-) -> dict[str, list | str]:
+) -> dict[str, list | str | dict[str, Any]]:
     """Consolidate sage responses using the moderator with conversation
     context"""
     moderator = ResponseModerator()
-    chat_history = state.get("chat_history", [])
 
     try:
         consolidated_response = await moderator.consolidate_responses(
-            state["user_query"],
-            state["agent_queries"],
             state["agent_responses"],
-            chat_history,
         )
+
+        # Store consolidation result in moderator_responses
+        consolidation_data = {
+            "consolidated_response": consolidated_response,
+            "input_sage_count": len(state["agent_responses"]),
+            "sage_names": list(state["agent_responses"].keys()),
+        }
 
         return {
             "messages": [HumanMessage(content=consolidated_response)],
             "final_response": consolidated_response,
+            "moderator_responses": {
+                **state.get("moderator_responses", {}),
+                "consolidation": consolidation_data,
+            },
         }
 
     except Exception as e:  # noqa: BLE001
+        error_response = f"Error: {str(e)}"
+        consolidation_error = {
+            "consolidated_response": error_response,
+            "error": str(e),
+            "input_sage_count": len(state.get("agent_responses", {})),
+        }
+
         return {
             "messages": [
                 HumanMessage(
                     content=f"Error consolidating responses: {str(e)}"
                 )
             ],
-            "final_response": f"Error: {str(e)}",
+            "final_response": error_response,
+            "moderator_responses": {
+                **state.get("moderator_responses", {}),
+                "consolidation": consolidation_error,
+            },
         }
 
 

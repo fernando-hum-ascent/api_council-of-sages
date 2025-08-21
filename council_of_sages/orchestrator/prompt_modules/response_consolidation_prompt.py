@@ -3,7 +3,7 @@ from ...lib.prompting import PromptModel
 
 RESPONSE_CONSOLIDATION_PROMPT = PromptModel(
     prompt_name="response_consolidation_moderator",
-    model="claude-sonnet-4-20250514",
+    model="claude-3-5-haiku-20241022",
     json_format=False,  # Returns natural language consolidated response
     temperature=0.2,  # Low temperature for consistent, logical synthesis
     template="""

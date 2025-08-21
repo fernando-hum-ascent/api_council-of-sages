@@ -1,15 +1,22 @@
 from typing import Annotated
 
 from langchain_anthropic import ChatAnthropic
+
+# Temporarily disabled Pydantic parsing due to parsing issues
+# from langchain_core.output_parsers import PydanticOutputParser  # noqa: ERA001,E501
 from langchain_core.tools import StructuredTool
 from langgraph.prebuilt import InjectedState
+from loguru import logger
 from pydantic import BaseModel, Field
 
 from ...lib.billing.billing_llm_proxy import BillingLLMProxy
-from ...types import SageEnum
+from ...types import SageEnum, SageResponse
 from ..prompt_modules import (
+    # MARCUS_AURELIUS_PARSER,
     MARCUS_AURELIUS_PROMPT,
+    # NASSIM_TALEB_PARSER,
     NASSIM_TALEB_PROMPT,
+    # NAVAL_RAVIKANT_PARSER,
     NAVAL_RAVIKANT_PROMPT,
 )
 from ..states import OrchestratorState
@@ -47,34 +54,34 @@ def _get_sage_llm(sage: SageEnum) -> BillingLLMProxy:
 
 
 # Sage configurations with their specific settings
+# (parsers temporarily disabled)  # ruff: noqa: ERA001
 SAGE_CONFIGS = {
     SageEnum.marcus_aurelius: {
         "prompt": MARCUS_AURELIUS_PROMPT,
-        "response_header": "MARCUS AURELIUS REFLECTS:",
-        "response_footer": "*From the Meditations of Marcus Aurelius*",
+        # "parser": MARCUS_AURELIUS_PARSER,  # noqa: ERA001
     },
     SageEnum.nassim_taleb: {
         "prompt": NASSIM_TALEB_PROMPT,
-        "response_header": "NASSIM TALEB RESPONDS:",
-        "response_footer": "*With characteristic Talebian skepticism*",
+        # "parser": NASSIM_TALEB_PARSER,  # noqa: ERA001
     },
     SageEnum.naval_ravikant: {
         "prompt": NAVAL_RAVIKANT_PROMPT,
-        "response_header": "NAVAL RAVIKANT SHARES:",
-        "response_footer": "*Wisdom for the modern age*",
+        # "parser": NAVAL_RAVIKANT_PARSER,  # noqa: ERA001
     },
 }
 
 
 async def philosophical_sage_function(
     sage: SageEnum, query: str, state: OrchestratorState
-) -> str:
+) -> SageResponse:
     """Unified sage function that provides wisdom based on the specified
     sage parameter"""
 
     # Get sage-specific configuration
     config = SAGE_CONFIGS[sage]
     prompt_model = config["prompt"]
+    # parser temporarily disabled  # ruff: noqa: ERA001
+    # parser: PydanticOutputParser = config["parser"]
 
     # Get the pre-wrapped LLM instance
     llm = _get_sage_llm(sage)
@@ -88,29 +95,42 @@ async def philosophical_sage_function(
     # Format chat history for context
     if chat_history:
         chat_context = "\\n".join(
-            [
-                f"{role.upper()}: {content}"
-                for role, content in chat_history[-3:]
-            ]
+            [f"{role.upper()}: {content}" for role, content in chat_history]
         )
     else:
         chat_context = "No previous conversation context."
 
-    # Format the prompt with the query and context using the PromptModel
-    # template
+    # Get original user query from state
+    original_user_query = state.get("user_query", query)
+
+    # Format the prompt without format instructions (plain text response)
     formatted_prompt = prompt_model.template.format(
-        query=query, chat_context=chat_context
+        original_user_query=original_user_query,
+        query=query,
+        chat_context=chat_context,
     )
 
-    # Invoke the LLM
-    response = await llm.ainvoke(formatted_prompt)
+    try:
+        # Invoke the LLM
+        response = await llm.ainvoke(formatted_prompt)
 
-    # Return the response with sage-specific formatting
-    sage_response = f"""{config["response_header"]}
+        # Get plain text response
+        plain_response = str(response.content).strip()
 
-{response.content}
-"""
-    return sage_response
+        # Hardcode the desired output format with the plain response
+        sage_response = SageResponse(
+            answer=plain_response,
+            summary=plain_response,  # Use same content for summary temporarily
+        )
+        return sage_response
+
+    except Exception as e:  # noqa: BLE001
+        logger.error(f"Failed to get sage response for {sage}: {e}")
+        # Fallback to error response
+        return SageResponse(
+            answer=f"Error: {str(e)}",
+            summary="Error invoking sage.",
+        )
 
 
 # Create the unified tool

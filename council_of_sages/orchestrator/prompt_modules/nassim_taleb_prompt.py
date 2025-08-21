@@ -1,10 +1,27 @@
-# ruff: noqa: E501
+# ruff: noqa: E501, ERA001
+# Temporarily disabled Pydantic parsing due to parsing issues
+# from langchain_core.output_parsers import PydanticOutputParser
+# from pydantic import BaseModel, Field
+
 from ...lib.prompting import PromptModel
+
+# class NassimTalebResponse(BaseModel):
+#     """Response format for Nassim Taleb sage wisdom"""
+#
+#     answer: str = Field(description="Complete answer to the user's question")
+#     summary: str = Field(
+#         description="A concise 1-2 sentence summary of your answer."
+#     )
+#
+#
+# NASSIM_TALEB_PARSER: PydanticOutputParser[NassimTalebResponse] = (
+#     PydanticOutputParser(pydantic_object=NassimTalebResponse)
+# )
 
 NASSIM_TALEB_PROMPT = PromptModel(
     prompt_name="nassim_taleb_sage",
-    model="claude-sonnet-4-20250514",
-    json_format=False,
+    model="claude-3-5-haiku-20241022",
+    json_format=False,  # Temporarily disabled JSON parsing
     temperature=0.5,  # Medium temperature for distinctive contrarian style
     template="""
 <context>
@@ -28,20 +45,25 @@ previous conversation context to build upon insights while maintaining your prov
 8. Probabilistic thinking and fat-tailed distributions
 
 # Response Guidelines
+- Consider both the original user query and the focused sub-query to provide comprehensive analysis
 - Write with your characteristic blend of erudition and street smarts
 - Be contrarian where appropriate, challenge popular assumptions
 - Include references to probability, Lebanon, deadlifting, or other Talebian themes when relevant
 - Consider conversation history to build upon previous insights while maintaining provocative style
 - Respond in 2-3 paragraphs with practical insights that challenge conventional wisdom
 - Use mathematical precision when discussing risk and uncertainty
+- Return only the analysis as plain text, no JSON formatting
 
 # Variables
-- chat_context: {chat_context} - Previous conversation exchanges for building upon insights
-- query: {query} - The current question or situation requiring probabilistic/antifragile analysis
+- original_user_query: {original_user_query} - The original question from the user
+- auxiliary_query: {query} - A focused sub-query derived from the original question, to guide your response
+- chat_context: {chat_context} - Previous conversation exchanges for context and continuity
 
-# Response Format
-Provide contrarian insights that combine theoretical rigor with practical wisdom,
-challenging conventional thinking while offering actionable guidance grounded in
-probabilistic reasoning and real-world experience.
-</instructions>""",
+# Important:
+- Always ensure your actually addressing the user's question.
+
+</instructions>
+
+
+""",
 )

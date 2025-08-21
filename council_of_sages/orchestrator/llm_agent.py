@@ -1,3 +1,4 @@
+import uuid
 from typing import TYPE_CHECKING, Any
 
 from langchain_core.messages import AIMessage, BaseMessage, HumanMessage
@@ -6,8 +7,9 @@ from loguru import logger
 from ..exc import PaymentRequiredError
 from ..lib.billing.service import perform_pre_request_checks
 from ..models.conversations import get_active_conversation_or_create_one
+from ..models.messages import Message
 from ..models.user import User
-from ..types import ChatUserEnum, OrchestratorResponse
+from ..types import ChatUserEnum, OrchestratorResponse, SageEnum, SageResponse
 
 if TYPE_CHECKING:
     from ..models.conversations import Conversation
@@ -50,12 +52,15 @@ async def arun_agent(
         )
         conversation_id_out = conversation.id
 
+        # Generate turn_id for this interaction
+        turn_id = str(uuid.uuid4())
+
         # Get chat history from conversation
-        chat_history = conversation.get_chat_history()
+        chat_history = await conversation.get_chat_history_with_summaries()
 
         # Build the initial state with conversation history
         state = build_orchestrator_state(
-            query, user_id, conversation.id, chat_history
+            query, user_id, conversation.id, chat_history, turn_id
         )
 
         # Execute the graph with recursion limit
@@ -67,18 +72,26 @@ async def arun_agent(
         # Extract and process the final response
         final_response = extract_final_response(result)
 
-        # Save conversation messages
-        await save_conversation_messages(conversation, query, final_response)
+        # Save conversation messages with turn_id and structured responses
+        await save_conversation_messages(
+            conversation, query, result.get("agent_responses", {}), turn_id
+        )
 
         # Get current user balance from database (source of truth)
         current_balance = await User.get_current_balance(user_id)
+
+        # Extract simplified agent responses (answers only)
+        agent_responses_simplified = extract_answers_from_agent_responses(
+            result.get("agent_responses", {})
+        )
 
         # Return OrchestratorResponse directly
         return OrchestratorResponse(
             response=final_response,
             conversation_id=conversation.id,
             agent_queries=result.get("agent_queries", {}),
-            agent_responses=result.get("agent_responses", {}),
+            agent_responses=agent_responses_simplified,
+            moderator_responses=result.get("moderator_responses", {}),
             balance=current_balance,
         )
     except PaymentRequiredError as e:
@@ -104,6 +117,7 @@ async def arun_agent(
             conversation_id=conversation_id_out or "",
             agent_queries={},
             agent_responses={},
+            moderator_responses=None,
             balance=None,
         )
 
@@ -113,6 +127,7 @@ def build_orchestrator_state(
     user_id: str,
     conversation_id: str,
     chat_history: list[tuple[str, str]],
+    turn_id: str,
 ) -> OrchestratorState:
     """
     Build the initial state for the orchestrator graph with conversation
@@ -123,6 +138,7 @@ def build_orchestrator_state(
         user_id: User identifier
         conversation_id: Conversation identifier
         chat_history: Previous conversation messages
+        turn_id: Unique identifier for this interaction turn
 
     Returns:
         Initialized OrchestratorState
@@ -143,9 +159,11 @@ def build_orchestrator_state(
         "user_query": query,
         "user_id": user_id,
         "conversation_id": conversation_id,
+        "turn_id": turn_id,
         "chat_history": chat_history,
         "agent_queries": {},
         "agent_responses": {},
+        "moderator_responses": {},
         "final_response": None,
     }
 
@@ -153,21 +171,71 @@ def build_orchestrator_state(
 
 
 async def save_conversation_messages(
-    conversation: "Conversation", user_query: str, ai_response: str
+    conversation: "Conversation",
+    user_query: str,
+    agent_responses: dict[str, SageResponse],
+    turn_id: str,
 ) -> None:
     """
-    Save the user query and AI response to the conversation.
+    Save the user query and structured sage responses to standalone messages.
 
     Args:
         conversation: The conversation object
         user_query: The user's query
-        ai_response: The AI's response
+        agent_responses: Dictionary of sage responses
+        turn_id: Unique identifier for this interaction turn
     """
-    # Add user message
-    await conversation.add_message(user_query, ChatUserEnum.human)
+    # Save user message with turn_id
+    user_message = Message(
+        conversation_id=conversation.id,
+        role=ChatUserEnum.human,
+        content=user_query,
+        turn_id=turn_id,
+    )
+    await user_message.async_save()
 
-    # Add AI response
-    await conversation.add_message(ai_response, ChatUserEnum.ai)
+    # Save one AI message per sage with structured content
+    for sage_name, sage_response in agent_responses.items():
+        # Convert SageResponse to dict if it's a Pydantic model
+        if hasattr(sage_response, "model_dump"):
+            response_dict = sage_response.model_dump()
+        else:
+            response_dict = sage_response  # type: ignore[assignment]
+
+        ai_message = Message(
+            conversation_id=conversation.id,
+            role=ChatUserEnum.ai,
+            content=response_dict["answer"],
+            summary=response_dict["summary"],
+            turn_id=turn_id,
+            sage=SageEnum(sage_name),
+        )
+        await ai_message.async_save()
+
+
+def extract_answers_from_agent_responses(
+    agent_responses: dict[str, SageResponse],
+) -> dict[str, str]:
+    """
+    Extract only the answers from the agent responses dictionary.
+
+    Args:
+        agent_responses: Dictionary of sage responses with full SageResponse
+            objects
+
+    Returns:
+        Dictionary with sage names as keys and only their answers as values
+    """
+    answers = {}
+    for sage_name, sage_response in agent_responses.items():
+        # Handle both Pydantic model and dict cases
+        if hasattr(sage_response, "answer"):
+            answers[sage_name] = sage_response.answer
+        elif isinstance(sage_response, dict):
+            answers[sage_name] = sage_response.get("answer", "")
+        else:
+            answers[sage_name] = ""
+    return answers
 
 
 def extract_final_response(result: dict[str, Any]) -> str:

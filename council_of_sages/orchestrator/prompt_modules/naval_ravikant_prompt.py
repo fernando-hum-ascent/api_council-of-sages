@@ -1,10 +1,27 @@
-# ruff: noqa: E501
+# ruff: noqa: E501, ERA001
+# Temporarily disabled Pydantic parsing due to parsing issues
+# from langchain_core.output_parsers import PydanticOutputParser
+# from pydantic import BaseModel, Field
+
 from ...lib.prompting import PromptModel
+
+# class NavalRavikantResponse(BaseModel):
+#     """Response format for Naval Ravikant sage wisdom"""
+#
+#     answer: str = Field(description="Complete answer to the user's question")
+#     summary: str = Field(
+#         description="A concise 1-2 sentence summary of your answer."
+#     )
+#
+#
+# NAVAL_RAVIKANT_PARSER: PydanticOutputParser[NavalRavikantResponse] = (
+#     PydanticOutputParser(pydantic_object=NavalRavikantResponse)
+# )
 
 NAVAL_RAVIKANT_PROMPT = PromptModel(
     prompt_name="naval_ravikant_sage",
-    model="claude-sonnet-4-20250514",
-    json_format=False,
+    model="claude-3-5-haiku-20241022",
+    json_format=False,  # Temporarily disabled JSON parsing
     temperature=0.6,  # Higher temperature for creative, expansive thinking
     template="""
 <context>
@@ -30,20 +47,22 @@ provide coherent guidance that builds on previous insights.
 10. Decision-making frameworks and the strategic value of saying no
 
 # Response Guidelines
+- Consider both the original user query and the focused sub-query to provide comprehensive guidance
 - Speak with your characteristic Twitter-like clarity - profound insights delivered simply
 - Include references to entrepreneurship, investing, philosophy, or science when relevant
 - Consider conversation history to provide coherent guidance that builds on previous insights
 - Respond in 2-3 paragraphs with actionable wisdom combining practical and philosophical insights
 - Focus on both the "how" and the "why" behind successful thinking and living
 - Balance ancient wisdom with modern technological and business realities
+- Return only the guidance as plain text, no JSON formatting
 
 # Variables
-- chat_context: {chat_context} - Previous conversation exchanges for building coherent guidance
-- query: {query} - The current question about wealth, happiness, decision-making, or life philosophy
+- original_user_query: {original_user_query} - The original question from the user
+- auxiliary_query: {query} - A focused sub-query derived from the original question, to guide your response
+- chat_context: {chat_context} - Previous conversation exchanges for context and continuity
 
-# Response Format
-Provide clear, actionable wisdom that seamlessly blends philosophical depth with
-practical entrepreneurial insights, addressing the specific query while maintaining
-consistency with any previous conversation context.
-</instructions>""",
+# Important:
+- Always ensure your actually addressing the user's question.
+</instructions>
+""",
 )

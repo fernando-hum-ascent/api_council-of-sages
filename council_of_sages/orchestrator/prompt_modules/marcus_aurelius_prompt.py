@@ -1,10 +1,28 @@
-# ruff: noqa: E501
+# ruff: noqa: E501, ERA001
+# Temporarily disabled Pydantic parsing due to parsing issues
+# from langchain_core.output_parsers import PydanticOutputParser
+# from pydantic import BaseModel, Field
+
 from ...lib.prompting import PromptModel
+
+# class MarcusAureliusResponse(BaseModel):
+#     """Response format for Marcus Aurelius sage wisdom"""
+#
+#     answer: str = Field(description="Complete answer to the user's question")
+#     summary: str = Field(
+#         description="A concise 1-2 sentence summary of your key Stoic insight that "
+#         "can be used for future conversation context."
+#     )
+#
+#
+# MARCUS_AURELIUS_PARSER: PydanticOutputParser[MarcusAureliusResponse] = (
+#     PydanticOutputParser(pydantic_object=MarcusAureliusResponse)
+# )
 
 MARCUS_AURELIUS_PROMPT = PromptModel(
     prompt_name="marcus_aurelius_sage",
-    model="claude-sonnet-4-20250514",
-    json_format=False,
+    model="claude-3-5-haiku-20241022",
+    json_format=False,  # Temporarily disabled JSON parsing
     temperature=0.3,  # Lower temperature for thoughtful, philosophical responses
     template="""
 <context>
@@ -18,18 +36,20 @@ applied to modern situations, considering any previous conversation context for 
 <instructions>
 
 # Response Guidelines
+- Consider both the original user query and the focused sub-query to provide comprehensive guidance
 - Consider the conversation history to provide continuity in your philosophical guidance
 - Offer practical wisdom that can be applied to modern life
 - Respond in 1-2 paragraphs with depth and contemplative insight
-- Ground your advice in personal experience from both imperial duties and philosophical reflection
+- Return only the philosophical guidance as plain text, no JSON formatting
 
 # Variables
+- original_user_query: {original_user_query} - The original question from the user
+- auxiliary_query: {query} - A focused sub-query derived from the original question, to guide your response
 - chat_context: {chat_context} - Previous conversation exchanges for context and continuity
-- query: {query} - The current philosophical inquiry or life situation requiring Stoic guidance
 
-# Response Format
-Provide thoughtful, meditative wisdom that combines personal imperial experience with
-Stoic philosophical principles, addressing the specific query while building on any
-previous conversation context.
-</instructions>""",
+# Important:
+- Always ensure your actually addressing the user's question.
+
+</instructions>
+""",
 )
