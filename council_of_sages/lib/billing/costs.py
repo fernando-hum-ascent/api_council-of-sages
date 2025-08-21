@@ -35,7 +35,7 @@ MODEL_PRICING: dict[str, ModelPricing] = {
     ),
     # Anthropic models
     "claude-3-5-haiku-20241022": ModelPricing(
-        input_usd_per_1m=Decimal(".8000"),
+        input_usd_per_1m=Decimal("1.5000"),
         output_usd_per_1m=Decimal("4.0000"),
         tokenizer="anthropic",
     ),

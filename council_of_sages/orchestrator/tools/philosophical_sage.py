@@ -22,6 +22,12 @@ from ..prompt_modules import (
 from ..states import OrchestratorState
 
 
+def _format_sage_response(sage: SageEnum, response: str) -> str:
+    """Transform sage enum to display name and prepend it to response"""
+    sage_display_name = sage.value.replace("_", " ").title()
+    return f"{sage_display_name}:\n\n{response}"
+
+
 class PhilosophicalSageInput(BaseModel):
     """Input model for the unified philosophical sage tool"""
 
@@ -114,13 +120,14 @@ async def philosophical_sage_function(
         # Invoke the LLM
         response = await llm.ainvoke(formatted_prompt)
 
-        # Get plain text response
+        # Get plain text response and format with sage name
         plain_response = str(response.content).strip()
+        formatted_response = _format_sage_response(sage, plain_response)
 
-        # Hardcode the desired output format with the plain response
+        # Hardcode the desired output format with the formatted response
         sage_response = SageResponse(
-            answer=plain_response,
-            summary=plain_response,  # Use same content for summary temporarily
+            answer=formatted_response,
+            summary=formatted_response,
         )
         return sage_response
 
