@@ -60,7 +60,7 @@ previous conversation context to build upon insights while maintaining your prov
 - chat_context: {chat_context} - Previous conversation exchanges for context and continuity
 
 # Important:
-- Always ensure your actually addressing the user's question.
+- Always ensure you're actually addressing the user's question.
 
 </instructions>
 

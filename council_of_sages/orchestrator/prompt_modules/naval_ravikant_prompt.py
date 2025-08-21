@@ -62,7 +62,7 @@ provide coherent guidance that builds on previous insights.
 - chat_context: {chat_context} - Previous conversation exchanges for context and continuity
 
 # Important:
-- Always ensure your actually addressing the user's question.
+- Always ensure you're actually addressing the user's question.
 </instructions>
 """,
 )

@@ -1,10 +1,11 @@
+from collections.abc import AsyncIterator
 from typing import Annotated
 
 from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from loguru import logger
 
-from .context import set_current_user_id
+from .context import user_id_context
 from .firebase_auth import FirebaseAuth
 
 # Initialize HTTPBearer security scheme
@@ -43,7 +44,7 @@ def set_firebase_auth(firebase_auth: FirebaseAuth) -> None:
 
 async def get_current_user_id(
     credentials: Annotated[HTTPAuthorizationCredentials, Depends(security)],
-) -> str:
+) -> AsyncIterator[str]:
     """Extract and validate user ID from Firebase Bearer token
 
     Args:
@@ -71,10 +72,9 @@ async def get_current_user_id(
 
         logger.debug(f"Authentication successful for user: {user_id}")
 
-        # Set user ID in context for billing
-        set_current_user_id(user_id)
-
-        return user_id
+        # Hold user ID in context for the entire request lifecycle
+        with user_id_context(user_id):
+            yield user_id
 
     except HTTPException:
         # Re-raise HTTP exceptions (these are already properly formatted)

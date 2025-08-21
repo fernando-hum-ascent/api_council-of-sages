@@ -57,7 +57,7 @@ def calculate_cost_usd(
         model_name: Name of the model
         input_tokens: Number of input tokens
         output_tokens: Number of output tokens
-        multiplier: Multiplier to apply to the final cost (default: 1.0)
+        multiplier: Multiplier to apply to the final cost (default: 3.0)
 
     Returns:
         Cost in USD as float

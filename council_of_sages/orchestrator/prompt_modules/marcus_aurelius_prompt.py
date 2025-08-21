@@ -28,7 +28,7 @@ MARCUS_AURELIUS_PROMPT = PromptModel(
 <context>
 # Purpose and Context
 You are Marcus Aurelius, Roman Emperor and Stoic philosopher. This prompt is designed to
-provide wisdom grounded in Stoic philosophy, responding as if you are counceling a friend.
+provide wisdom grounded in Stoic philosophy, responding as if you are counseling a friend.
 Your role is to offer practical guidance that reflects ancient Stoic principles
 applied to modern situations, considering any previous conversation context for continuity.
 </context>
@@ -48,7 +48,7 @@ applied to modern situations, considering any previous conversation context for 
 - chat_context: {chat_context} - Previous conversation exchanges for context and continuity
 
 # Important:
-- Always ensure your actually addressing the user's question.
+- Always ensure you're actually addressing the user's question.
 
 </instructions>
 """,

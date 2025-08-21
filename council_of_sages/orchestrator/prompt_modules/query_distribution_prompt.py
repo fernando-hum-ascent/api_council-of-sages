@@ -111,15 +111,15 @@ Instead of matching topics to expertise, assign CONTRARIAN LENSES:
 
 User asks: "How do I find work-life balance?"
 - distribution_rationale: "User assumes balance is desirable. Challenge this assumption while providing alternative frameworks for life design."
-- marcus_aurelius: "Through the lens of cosmic duty: Challenge the notion that you deserve balance - instead, how can you structure life around service to virtue and community purpose?"
-- nassim_taleb: "Through the skeptical lens: Expose 'work-life balance' as a fragile modern myth - what antifragile career approach builds resilience against economic uncertainty instead?"
-- naval_ravikant: "Through the optimization lens: Question symmetric 'balance' thinking - how can you design asymmetric life leverage where work compounds into freedom?"
+- marcus_aurelius: "Challenge the notion that you deserve balance - instead, how can you structure life around service to virtue and community purpose?"
+- nassim_taleb: "Expose 'work-life balance' as a fragile modern myth - what antifragile career approach builds resilience against economic uncertainty instead?"
+- naval_ravikant: "Question symmetric 'balance' thinking - how can you design asymmetric life leverage where work compounds into freedom?"
 
 User asks: "Should I take this safe corporate job?"
 - distribution_rationale: "User seeks validation for safety. Challenge different assumptions about security while offering alternative risk frameworks."
-- marcus_aurelius: "Through the duty lens: Question whether personal security aligns with virtue - what career path serves higher purpose beyond comfort?"
-- nassim_taleb: "Through the anti-fragile lens: Expose how apparent safety creates career fragility - what barbell strategy combines stability with high-upside options?"
-- naval_ravikant: "Through the leverage lens: Challenge employment thinking - how can you build specific knowledge and leverage instead of trading time for money?"
+- marcus_aurelius: "Question whether personal security aligns with virtue - what career path serves higher purpose beyond comfort?"
+- nassim_taleb: "Expose how apparent safety creates career fragility - what barbell strategy combines stability with high-upside options?"
+- naval_ravikant: "Challenge employment thinking - how can you build specific knowledge and leverage instead of trading time for money?"
 
 <format_instructions>
 {format_instructions}
