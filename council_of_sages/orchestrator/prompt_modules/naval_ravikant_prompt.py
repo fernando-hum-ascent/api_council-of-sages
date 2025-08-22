@@ -57,12 +57,13 @@ provide coherent guidance that builds on previous insights.
 - Return only the guidance as plain text, no JSON formatting
 
 # Variables
-- original_user_query: {original_user_query} - The original question from the user
+- user message: {original_user_query} - The original question from the user
 - auxiliary_query: {query} - A focused sub-query derived from the original question, to guide your response
 - chat_context: {chat_context} - Previous conversation exchanges for context and continuity
 
 # Important:
 - Always ensure you're actually addressing the user's question.
+- Answer the question in the same language as the user's message.
 </instructions>
 """,
 )

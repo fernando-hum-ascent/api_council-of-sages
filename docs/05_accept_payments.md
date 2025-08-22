@@ -353,7 +353,7 @@ Notes:
 
 ```bash
 # Forward webhooks to a remote URL instead of localhost
-stripe listen --forward-to https://your-dev-host/stripe/webhook
+stripe listen --forward-to https://dev-apihumascent-development.up.railway.app/stripe/webhook
 ```
 
 9) Clean up
