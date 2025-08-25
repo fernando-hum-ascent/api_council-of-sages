@@ -9,7 +9,7 @@ from ..lib.billing.service import perform_pre_request_checks
 from ..models.conversations import get_active_conversation_or_create_one
 from ..models.messages import Message
 from ..models.user import User
-from ..types import ChatUserEnum, OrchestratorResponse, SageEnum, SageResponse
+from ..types import ChatUserEnum, OrchestratorResponse, SageResponse
 
 if TYPE_CHECKING:
     from ..models.conversations import Conversation
@@ -128,6 +128,7 @@ def build_orchestrator_state(
     conversation_id: str,
     chat_history: list[tuple[str, str]],
     turn_id: str,
+    max_sages_to_run: int = 5,
 ) -> OrchestratorState:
     """
     Build the initial state for the orchestrator graph with conversation
@@ -161,10 +162,13 @@ def build_orchestrator_state(
         "conversation_id": conversation_id,
         "turn_id": turn_id,
         "chat_history": chat_history,
+        "sages_to_run": [],
         "agent_queries": {},
         "agent_responses": {},
         "moderator_responses": {},
         "final_response": None,
+        "max_sages_to_run": max_sages_to_run,
+        "cleaned_user_query": None,
     }
 
     return state
@@ -208,7 +212,7 @@ async def save_conversation_messages(
             content=response_dict["answer"],
             summary=response_dict["summary"],
             turn_id=turn_id,
-            sage=SageEnum(sage_name),
+            sage=sage_name,
         )
         await ai_message.async_save()
 

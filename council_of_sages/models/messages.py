@@ -6,7 +6,7 @@ from mongoengine_plus.models import BaseModel, uuid_field
 from mongoengine_plus.models.event_handlers import updated_at
 from mongoengine_plus.types import EnumField
 
-from ..types import ChatUserEnum, SageEnum
+from ..types import ChatUserEnum
 
 
 @updated_at.apply
@@ -32,4 +32,4 @@ class Message(BaseModel, AsyncDocument):
     timestamp = DateTimeField(default=lambda: datetime.now(UTC))
     updated_at = DateTimeField(default=lambda: datetime.now(UTC))
     summary = StringField()  # Optional summary for AI messages
-    sage = EnumField(SageEnum)  # Optional sage identifier for AI messages
+    sage = StringField()  # Optional sage identifier for AI messages

@@ -1,14 +1,17 @@
 from typing import Any
 
 from langchain_anthropic import ChatAnthropic
+from loguru import logger
 
 from ..lib.billing.billing_llm_proxy import BillingLLMProxy
 from ..types import SageResponse
 from .prompt_modules import (
-    QUERY_DISTRIBUTION_PARSER,
-    QUERY_DISTRIBUTION_PROMPT,
     RESPONSE_CONSOLIDATION_PROMPT,
+    SAGE_SELECTION_PARSER,
+    SAGE_SELECTION_PROMPT,
 )
+from .sages_loader import available_sages_text, list_sage_ids
+from .states import SageSpec
 
 
 class ResponseModerator:
@@ -18,9 +21,9 @@ class ResponseModerator:
     def __init__(self) -> None:
         # Initialize LLMs using prompt model configurations and wrap with
         # billing proxy
-        raw_distribution_llm = ChatAnthropic(
-            model=QUERY_DISTRIBUTION_PROMPT.model,
-            temperature=QUERY_DISTRIBUTION_PROMPT.temperature,
+        raw_selection_llm = ChatAnthropic(
+            model=SAGE_SELECTION_PROMPT.model,
+            temperature=SAGE_SELECTION_PROMPT.temperature,
         )
         raw_consolidation_llm = ChatAnthropic(
             model=RESPONSE_CONSOLIDATION_PROMPT.model,
@@ -28,9 +31,9 @@ class ResponseModerator:
         )
 
         # Wrap with billing proxy
-        self.distribution_llm = BillingLLMProxy(raw_distribution_llm)
+        self.selection_llm = BillingLLMProxy(raw_selection_llm)
         self.consolidation_llm = BillingLLMProxy(raw_consolidation_llm)
-        self.distribution_parser = QUERY_DISTRIBUTION_PARSER
+        self.selection_parser = SAGE_SELECTION_PARSER
 
     def _format_chat_context(
         self, chat_history: list[tuple[str, str]] | None
@@ -43,109 +46,94 @@ class ResponseModerator:
             f"{role.upper()}: {content}" for role, content in chat_history
         )
 
-    def _build_prompt(self, user_query: str, chat_context: str) -> str:
-        """Build the formatted prompt for query distribution"""
-        return QUERY_DISTRIBUTION_PROMPT.template.format(
+    def _generate_available_sages_description(self) -> str:
+        """Generate available predefined sages description from YAML files."""
+        return available_sages_text()
+
+    def _build_selection_prompt(
+        self, user_query: str, chat_context: str
+    ) -> str:
+        """Build the formatted prompt for sage selection"""
+        return SAGE_SELECTION_PROMPT.template.format(
             user_query=user_query,
             chat_context=chat_context,
-            format_instructions=self.distribution_parser.get_format_instructions(),
+            available_sages=self._generate_available_sages_description(),
+            format_instructions=self.selection_parser.get_format_instructions(),
         )
 
-    def _extract_sage_queries(self, parsed_response: Any) -> dict[str, str]:
-        """Extract non-empty sage queries from parsed response"""
-        sage_fields = {
-            "marcus_aurelius": parsed_response.marcus_aurelius,
-            "nassim_taleb": parsed_response.nassim_taleb,
-            "naval_ravikant": parsed_response.naval_ravikant,
-        }
+    def _build_sage_specs_from_selection(
+        self, parsed_response: Any
+    ) -> list[SageSpec]:
+        """Build list of SageSpec from sage selection response"""
+        specs = []
 
-        return {name: query for name, query in sage_fields.items() if query}
+        # Add predefined sages
+        available_sage_ids = list_sage_ids()
+        for sage_key in parsed_response.predefined_chosen_sages:
+            if sage_key in available_sage_ids:
+                specs.append(
+                    SageSpec(
+                        source="predefined",
+                        key=sage_key,
+                        name=sage_key.replace("_", " ").title(),
+                        description="",  # Will be loaded dynamically
+                    )
+                )
+            else:
+                logger.warning(f"Unknown predefined sage key: {sage_key}")
 
-    def _build_fallback_queries(
-        self, user_query: str, chat_history: list[tuple[str, str]] | None
-    ) -> dict[str, str]:
-        """Build fallback queries when parsing fails"""
-        context_note = (
-            " (considering conversation history)" if chat_history else ""
-        )
+        # Add dynamic sages
+        for new_sage in parsed_response.new_sages_to_create:
+            specs.append(
+                SageSpec(
+                    source="dynamic",
+                    key=None,
+                    name=new_sage.name,
+                    description=new_sage.description,
+                )
+            )
 
-        return {
-            "marcus_aurelius": (
-                f"From a Stoic perspective, how should one approach"
-                f"{context_note}: {user_query}"
-            ),
-            "nassim_taleb": (
-                f"From an antifragile and probabilistic perspective"
-                f"{context_note}: {user_query}"
-            ),
-            "naval_ravikant": (
-                f"From an entrepreneurial and philosophical perspective"
-                f"{context_note}: {user_query}"
-            ),
-        }
+        return specs
 
-    def _build_distribution_result(
-        self,
-        rationale: str,
-        parsed_response_data: dict[str, Any] | None,
-        sage_queries: dict[str, str],
-        user_query: str,
-        chat_history: list[tuple[str, str]] | None,
-        error: str | None = None,
-    ) -> dict[str, Any]:
-        """Build the standard distribution result format"""
-        result = {
-            "distribution_rationale": rationale,
-            "parsed_response": parsed_response_data,
-            "sage_queries": sage_queries,
-            "user_query": user_query,
-            "chat_context_length": len(chat_history) if chat_history else 0,
-        }
+    def _build_fallback_sage_specs(self) -> list[SageSpec]:
+        """Build fallback sage specs when parsing fails"""
+        return [
+            SageSpec(
+                source="predefined",
+                key="generalist_sage",
+                name="Generalist Sage",
+                description="",  # Will be loaded dynamically
+            )
+        ]
 
-        if error:
-            result["error"] = error
-
-        return result
-
-    async def distribute_query(
+    async def select_sages(
         self,
         user_query: str,
         chat_history: list[tuple[str, str]] | None = None,
-    ) -> dict[str, Any]:
-        """Analyze user query with conversation context and create specific
-        queries for selected relevant sages"""
+    ) -> list[SageSpec]:
+        """Select relevant sages (predefined and dynamic) for the user query"""
         chat_context = self._format_chat_context(chat_history)
-        formatted_prompt = self._build_prompt(user_query, chat_context)
+        formatted_prompt = self._build_selection_prompt(
+            user_query, chat_context
+        )
 
         try:
-            response = await self.distribution_llm.ainvoke(formatted_prompt)
-            parsed_response = self.distribution_parser.parse(
+            response = await self.selection_llm.ainvoke(formatted_prompt)
+            parsed_response = self.selection_parser.parse(
                 str(response.content)
             )
-            sage_queries = self._extract_sage_queries(parsed_response)
+            sage_specs = self._build_sage_specs_from_selection(parsed_response)
 
-            return self._build_distribution_result(
-                parsed_response.distribution_rationale,
-                parsed_response.model_dump(),
-                sage_queries,
-                user_query,
-                chat_history,
-            )
+            # Ensure we have at least one sage
+            if not sage_specs:
+                logger.warning("No sages selected, using fallback")
+                sage_specs = self._build_fallback_sage_specs()
+
+            return sage_specs
 
         except Exception as e:  # noqa: BLE001
-            fallback_queries = self._build_fallback_queries(
-                user_query, chat_history
-            )
-            rationale = f"Fallback distribution due to error: {str(e)}"
-
-            return self._build_distribution_result(
-                rationale,
-                None,
-                fallback_queries,
-                user_query,
-                chat_history,
-                error=str(e),
-            )
+            logger.error(f"Sage selection failed: {str(e)}, using fallback")
+            return self._build_fallback_sage_specs()
 
     async def consolidate_responses(
         self,
