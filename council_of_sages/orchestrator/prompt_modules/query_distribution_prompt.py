@@ -53,6 +53,7 @@ qualified, complementary council for the specific question at hand.
 # Selection Strategy
 - Select 1-6 sages total (could be all predefined or all dynamic)
 - Optimize for world-class expertise and complementary perspectives
+- Avoid duplication: do not select sages with overlapping points of view; choose one representative and diversify perspectives while maintaining quality
 - Choose predefined sages when their expertise precisely matches the user's needs
 - Create dynamic sages to bring in specific, missing expertise at the highest level
 - Include well-documented real experts or specific generic roles when they add unique value
