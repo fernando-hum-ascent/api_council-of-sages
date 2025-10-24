@@ -57,7 +57,7 @@ async def execute_sage_spec(
         plain_response = str(response.content).strip()
 
         # Format response with sage name
-        formatted_response = f"{sage_spec.name}:\n\n{plain_response}"
+        formatted_response = f"{plain_response}"
 
         return SageResponse(
             answer=formatted_response,

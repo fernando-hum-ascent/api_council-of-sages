@@ -3,7 +3,7 @@ from ...lib.prompting import PromptModel
 
 USER_INPUT_CLEANER_PROMPT = PromptModel(
     prompt_name="user_input_cleaner",
-    model="claude-3-5-haiku-20241022",  # lightweight & inexpensive
+    model="claude-haiku-4-5-20251001",  # lightweight & inexpensive
     json_format=False,
     temperature=0.0,  # deterministic cleaning
     template=(

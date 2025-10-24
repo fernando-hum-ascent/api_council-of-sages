@@ -34,6 +34,16 @@ MODEL_PRICING: dict[str, ModelPricing] = {
         tokenizer="openai",
     ),
     # Anthropic models
+    "claude-haiku-4-5-20251001": ModelPricing(
+        input_usd_per_1m=Decimal("1.5000"),
+        output_usd_per_1m=Decimal("4.0000"),
+        tokenizer="anthropic",
+    ),
+    "claude-sonnet-4-5-20250929": ModelPricing(
+        input_usd_per_1m=Decimal("3.0000"),
+        output_usd_per_1m=Decimal("6.0000"),
+        tokenizer="anthropic",
+    ),
     "claude-3-5-haiku-20241022": ModelPricing(
         input_usd_per_1m=Decimal("1.5000"),
         output_usd_per_1m=Decimal("4.0000"),

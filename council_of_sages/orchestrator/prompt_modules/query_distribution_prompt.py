@@ -31,7 +31,7 @@ SAGE_SELECTION_PARSER: PydanticOutputParser[SageSelectionResponse] = (
 
 SAGE_SELECTION_PROMPT = PromptModel(
     prompt_name="sage_selection_moderator",
-    model="claude-3-5-haiku-20241022",
+    model="claude-haiku-4-5-20251001",
     json_format=True,  # Returns structured JSON with sage selection
     temperature=0.4,  # Higher temperature to encourage more diverse perspectives
     template="""
@@ -135,7 +135,14 @@ Response:
 }}
 ```
 
-
+User asks: "Hello, how can I use the council of sages?"
+Response:
+```json
+{{
+  "predefined_chosen_sages": ["council_host_and_guide"],
+  "new_sages_to_create": []
+}}
+```
 <format_instructions>
 {format_instructions}
 
