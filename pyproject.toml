@@ -7,26 +7,26 @@ authors = [
 description = "FastAPI + LangGraph application"
 requires-python = ">=3.13"
 dependencies = [
-    "fastapi>=0.109.0",
-    "uvicorn>=0.27.0",
-    "httpx>=0.25.0",
-    "pydantic>=2.4.2",
-    "pydantic-settings>=2.1.0",
-    "pydantic-core>=2.24.0",
-    "python-dotenv>=1.0.0",
-    "loguru>=0.7.2",
-    "langgraph>=0.0.20",
-    "langchain>=0.3.12",
-    "langchain-core>=0.3.25",
-    "langchain-community>=0.3.12",
-    "langchain-openai>=0.2.12",
-    "langchain-anthropic>=0.3.1",
-    "emoji>=2.14.1",
-    "blinker>=1.9.0",
-    "mongoengine-plus>=1.0.0",  # Optional: if using MongoDB
-    "firebase-admin>=6.2.0",
-    "python-jose[cryptography]>=3.3.0",  # For JWT token verification
-    "stripe>=10.0.0",
+    "fastapi~=0.116.1",
+    "uvicorn~=0.35.0",
+    "httpx~=0.28.1",
+    "pydantic~=2.11.7",
+    "pydantic-settings~=2.10.1",
+    "pydantic-core~=2.33.2",
+    "python-dotenv~=1.1.1",
+    "loguru~=0.7.3",
+    "langgraph~=0.6.6",
+    "langchain~=0.3.27",
+    "langchain-core~=0.3.74",
+    "langchain-community~=0.3.27",
+    "langchain-openai~=0.3.31",
+    "langchain-anthropic~=0.3.19",
+    "emoji~=2.14.1",
+    "blinker~=1.9.0",
+    "mongoengine-plus~=1.2.0",  # Optional: if using MongoDB
+    "firebase-admin~=7.1.0",
+    "python-jose[cryptography]~=3.5.0",  # For JWT token verification
+    "stripe~=12.4.0",
 ]
 
 [dependency-groups]
